@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
-import { LoopsClient } from "loops";
+import { Resend } from "resend";
 
 export async function POST(req: NextRequest) {
   try {
-    const loopsApiKey = process.env.LOOPS_API_KEY;
-    const transactionalId = process.env.LOOPS_TRANSACTIONAL_ID;
+    const resendApiKey = process.env.RESEND_API_KEY;
 
-    if (!loopsApiKey || !transactionalId) {
-      throw new Error("Loops environment variables are not configured.");
+    if (!resendApiKey) {
+      throw new Error("Resend API key is not configured.");
     }
 
     const { fullName, email, role } = (await req.json()) as {
@@ -25,6 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(email)) {
       return NextResponse.json(
         { error: "Invalid email address." },
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseClient();
+
     const { error: dbError } = await supabase
       .from("waitlist")
       .insert([{ full_name: fullName, email, role }]);
@@ -44,14 +45,21 @@ export async function POST(req: NextRequest) {
           { status: 409 },
         );
       }
+
       throw dbError;
     }
 
-    const loops = new LoopsClient(loopsApiKey);
-    await loops.sendTransactionalEmail({
-      transactionalId,
-      email,
-      dataVariables: { firstName: fullName.split(" ")[0] },
+    const resend = new Resend(resendApiKey);
+
+    await resend.emails.send({
+      from: "QuestXS <onboarding@resend.dev>",
+      to: email,
+      subject: "Welcome to QuestXS",
+      html: `
+        <h2>Welcome to QuestXS</h2>
+        <p>You're officially on the waitlist.</p>
+        <p>We'll keep you updated.</p>
+      `,
     });
 
     return NextResponse.json(
@@ -60,6 +68,7 @@ export async function POST(req: NextRequest) {
     );
   } catch (err) {
     console.error("Waitlist error:", err);
+
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 },
