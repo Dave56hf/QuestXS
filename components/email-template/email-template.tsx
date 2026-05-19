@@ -132,7 +132,7 @@ export function EmailTemplate({ firstName }: EmailTemplateProps) {
           }}
         >
           <a
-            href="https://tryquest.io"
+            href="https://quest-xs.vercel.app"
             style={{
               display: "inline-block",
               padding: "14px 28px",
@@ -187,7 +187,7 @@ export function EmailTemplate({ firstName }: EmailTemplateProps) {
           }}
         >
           You are receiving this email because you joined the Quest waitlist at
-          tryquest.io
+          https://quest-xs.vercel.app
         </p>
       </div>
     </div>
