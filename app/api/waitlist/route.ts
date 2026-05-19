@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
 import { Resend } from "resend";
+import { EmailTemplate } from "../../../components/email-template/email-template";
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,11 +56,9 @@ export async function POST(req: NextRequest) {
       from: "QuestXS <onboarding@resend.dev>",
       to: email,
       subject: "Welcome to QuestXS",
-      html: `
-        <h2>Welcome to QuestXS</h2>
-        <p>You're officially on the waitlist.</p>
-        <p>We'll keep you updated.</p>
-      `,
+      react: EmailTemplate({
+        firstName: fullName.split(" ")[0],
+      }),
     });
 
     return NextResponse.json(
