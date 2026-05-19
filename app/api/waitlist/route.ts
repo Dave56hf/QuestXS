@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
+import { render } from "@react-email/render";
 import { EmailTemplate } from "../../../components/email-template/email-template";
 
 export async function POST(req: NextRequest) {
   try {
-    const resendApiKey = process.env.RESEND_API_KEY;
-
-    if (!resendApiKey) {
-      throw new Error("Resend API key is not configured.");
-    }
-
     const { fullName, email, role } = (await req.json()) as {
       fullName?: string;
       email?: string;
@@ -46,19 +41,29 @@ export async function POST(req: NextRequest) {
           { status: 409 },
         );
       }
-
       throw dbError;
     }
 
-    const resend = new Resend(resendApiKey);
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
 
-    await resend.emails.send({
-      from: "QuestXS <onboarding@resend.dev>",
+    const firstName = fullName.split(" ")[0];
+
+    // Render your React email template to HTML string
+    const htmlContent = await render(
+      EmailTemplate({ firstName })
+    );
+
+    await transporter.sendMail({
+      from: `Quest <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: "Welcome to QuestXS",
-      react: EmailTemplate({
-        firstName: fullName.split(" ")[0],
-      }),
+      subject: "You're on the Quest waitlist!",
+      html: htmlContent,
     });
 
     return NextResponse.json(
