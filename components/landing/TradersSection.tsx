@@ -12,7 +12,7 @@ const bullets = [
 export default function TradersSection() {
   return (
     <section id="how-it-works" className="px-6 py-24 lg:px-8">
-      <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[0.85fr_1.15fr]">
+      <div className="mx-auto grid max-w-7xl items-center gap-12 grid-cols-1 lg:grid-cols-[0.85fr_1.15fr]">
         <div>
           <h2 className="font-display text-4xl font-bold sm:text-5xl">
             Built For Traders <span className="text-accent">& Investors</span>
