@@ -158,7 +158,7 @@ export function EmailTemplate({ firstName }: EmailTemplateProps) {
         >
           We’re building fast and launch is coming soon.
           <br />
-          Stay tuned — this is going to be worth the wait.
+          Stay tuned this is going to be worth the wait.
         </p>
 
         <p
@@ -168,7 +168,7 @@ export function EmailTemplate({ firstName }: EmailTemplateProps) {
             fontWeight: "bold",
           }}
         >
-          — Dave & The Quest Team
+          Dave & The Quest Team
         </p>
 
         <hr
