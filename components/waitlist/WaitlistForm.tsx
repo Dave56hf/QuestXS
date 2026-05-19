@@ -110,19 +110,7 @@ export default function WaitlistForm() {
         </Button>
 
         <div className="flex items-center justify-center pt-2">
-          <div className="flex">
-            {["bg-accent", "bg-surface2", "bg-green-700", "bg-zinc-700"].map(
-              (item, index) => (
-                <div
-                  key={item}
-                  className={`h-8 w-8 rounded-full border-2 border-bg ${item} ${
-                    index === 0 ? "" : "-ml-2"
-                  }`}
-                />
-              ),
-            )}
-          </div>
-          <p className="ml-3 text-sm text-muted">Join 3,200+ people on the waitlist</p>
+          <p className="ml-3 text-sm text-muted">Join the waitlist now</p>
         </div>
       </div>
     </Card>
