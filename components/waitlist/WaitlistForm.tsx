@@ -43,6 +43,18 @@ export default function WaitlistForm() {
 
       setSubmitted(true);
       track("waitlist_signup", { role });
+      void fetch("/api/analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventName: "waitlist_signup",
+          visitorId: window.localStorage.getItem("questxs_visitor_id") ?? "anonymous",
+          sessionId: window.sessionStorage.getItem("questxs_session_id") ?? "session",
+          path: window.location.pathname,
+          referrer: document.referrer || "Direct",
+          source: new URLSearchParams(window.location.search).get("utm_source") ?? "Direct",
+        }),
+      });
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

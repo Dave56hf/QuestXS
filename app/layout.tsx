@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import SupabaseAnalytics from "@/components/analytics/SupabaseAnalytics";
 import SiteChrome from "@/components/layout/SiteChrome";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-bg text-white antialiased">
         <SiteChrome>{children}</SiteChrome>
         <Analytics />
+        <SupabaseAnalytics />
       </body>
     </html>
   );

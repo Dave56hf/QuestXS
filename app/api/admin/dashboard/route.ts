@@ -4,6 +4,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 
 type WaitlistRow = Record<string, unknown>;
+type AnalyticsRow = Record<string, unknown>;
 
 type WaitlistUser = {
   email: string;
@@ -11,6 +12,14 @@ type WaitlistUser = {
   country: string;
   source: string;
   status: string;
+};
+
+type TrendPoint = {
+  date: Date;
+  label: string;
+  waitlist: number;
+  visitors: number;
+  returning: number;
 };
 
 function readString(row: WaitlistRow, keys: string[], fallback = "Unknown") {
@@ -40,8 +49,16 @@ function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+function startOfDay(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function startOfMonth(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+}
+
 function isSameDay(date: Date, compareTo: Date) {
-  return date.toDateString() === compareTo.toDateString();
+  return startOfDay(date).getTime() === startOfDay(compareTo).getTime();
 }
 
 function isSameMonth(date: Date, compareTo: Date) {
@@ -65,6 +82,95 @@ function buildWaitlistTrend(rows: WaitlistRow[]) {
   });
 }
 
+function buildTrend(waitlistRows: WaitlistRow[], analyticsRows: AnalyticsRow[]) {
+  const now = new Date();
+
+  return Array.from({ length: 7 }, (_, index): TrendPoint => {
+    const date = new Date(now);
+    date.setUTCDate(now.getUTCDate() - (6 - index));
+    const pageViewsForDay = analyticsRows.filter(
+      (row) =>
+        readString(row, ["event_name"], "") === "page_view" &&
+        isSameDay(readDate(row), date),
+    );
+    const sessionCounts = pageViewsForDay.reduce<Record<string, Set<string>>>(
+      (acc, row) => {
+        const visitorId = readString(row, ["visitor_id"], "");
+        const sessionId = readString(row, ["session_id"], "");
+
+        if (!visitorId || !sessionId) {
+          return acc;
+        }
+
+        acc[visitorId] ??= new Set();
+        acc[visitorId].add(sessionId);
+        return acc;
+      },
+      {},
+    );
+
+    return {
+      date,
+      label: date.toLocaleDateString("en", { weekday: "short" }),
+      waitlist: waitlistRows.filter((row) => isSameDay(readDate(row), date)).length,
+      visitors: new Set(pageViewsForDay.map((row) => readString(row, ["visitor_id"], ""))).size,
+      returning: Object.values(sessionCounts).filter((sessions) => sessions.size > 1).length,
+    };
+  });
+}
+
+function uniqueCount(rows: AnalyticsRow[], key: string) {
+  return new Set(rows.map((row) => readString(row, [key], "")).filter(Boolean)).size;
+}
+
+function averageSessionDuration(rows: AnalyticsRow[]) {
+  const durations = rows
+    .filter((row) => readString(row, ["event_name"], "") === "session_end")
+    .map((row) => row.duration_seconds)
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+
+  if (!durations.length) {
+    return 0;
+  }
+
+  return Math.round(
+    durations.reduce((total, duration) => total + duration, 0) / durations.length,
+  );
+}
+
+function formatDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  return `${minutes}m ${remainingSeconds.toString().padStart(2, "0")}s`;
+}
+
+function sessionStats(pageViews: AnalyticsRow[]) {
+  const pagesBySession = pageViews.reduce<Record<string, number>>((acc, row) => {
+    const sessionId = readString(row, ["session_id"], "");
+
+    if (!sessionId) {
+      return acc;
+    }
+
+    acc[sessionId] = (acc[sessionId] ?? 0) + 1;
+    return acc;
+  }, {});
+  const counts = Object.values(pagesBySession);
+
+  if (!counts.length) {
+    return { bounceRate: 0, pagesPerSession: 0 };
+  }
+
+  const bounces = counts.filter((count) => count === 1).length;
+  const totalPages = counts.reduce((total, count) => total + count, 0);
+
+  return {
+    bounceRate: Number(((bounces / counts.length) * 100).toFixed(1)),
+    pagesPerSession: Number((totalPages / counts.length).toFixed(1)),
+  };
+}
+
 export async function GET() {
   try {
     const supabase = getSupabaseAdminClient();
@@ -83,8 +189,41 @@ export async function GET() {
 
     const rows = data ?? [];
     const now = new Date();
+    const dayStart = startOfDay(now);
+    const monthStart = startOfMonth(now);
     const dailySignups = rows.filter((row) => isSameDay(readDate(row), now)).length;
     const monthlySignups = rows.filter((row) => isSameMonth(readDate(row), now)).length;
+    const analyticsResult = await supabase
+      .from("analytics_events")
+      .select("*")
+      .gte("created_at", monthStart.toISOString());
+    const analyticsRows = analyticsResult.error ? [] : (analyticsResult.data ?? []);
+    const pageViews = analyticsRows.filter(
+      (row) => readString(row, ["event_name"], "") === "page_view",
+    );
+    const dailyPageViews = pageViews.filter((row) => readDate(row) >= dayStart);
+    const monthlyVisitors = uniqueCount(pageViews, "visitor_id");
+    const dailyVisitors = uniqueCount(dailyPageViews, "visitor_id");
+    const monthlySessions = uniqueCount(pageViews, "session_id");
+    const visitorSessions = pageViews.reduce<Record<string, Set<string>>>((acc, row) => {
+      const visitorId = readString(row, ["visitor_id"], "");
+      const sessionId = readString(row, ["session_id"], "");
+
+      if (!visitorId || !sessionId) {
+        return acc;
+      }
+
+      acc[visitorId] ??= new Set();
+      acc[visitorId].add(sessionId);
+      return acc;
+    }, {});
+    const returningVisitors = Object.values(visitorSessions).filter(
+      (sessions) => sessions.size > 1,
+    ).length;
+    const conversionRate = monthlyVisitors
+      ? Number(((monthlySignups / monthlyVisitors) * 100).toFixed(1))
+      : 0;
+    const engagement = sessionStats(pageViews);
 
     const waitlistUsers: WaitlistUser[] = rows.map((row) => ({
       email: readString(row, ["email"]),
@@ -94,8 +233,9 @@ export async function GET() {
       status: readString(row, ["status"], "Confirmed"),
     }));
 
-    const sourceCounts = waitlistUsers.reduce<Record<string, number>>((acc, user) => {
-      acc[user.source] = (acc[user.source] ?? 0) + 1;
+    const sourceCounts = pageViews.reduce<Record<string, number>>((acc, row) => {
+      const source = readString(row, ["source"], "Direct");
+      acc[source] = (acc[source] ?? 0) + 1;
       return acc;
     }, {});
 
@@ -103,17 +243,35 @@ export async function GET() {
       .sort(([, a], [, b]) => b - a)
       .map(([source, count]) => ({
         source,
-        value: rows.length ? Math.round((count / rows.length) * 100) : 0,
+        value: pageViews.length ? Math.round((count / pageViews.length) * 100) : 0,
         sessions: count.toLocaleString(),
       }));
+    const trend = buildTrend(rows, pageViews);
 
     return NextResponse.json({
       metrics: {
+        averageSessionTime: formatDuration(averageSessionDuration(analyticsRows)),
+        bounceRate: engagement.bounceRate,
+        conversionRate,
+        dailyVisitors,
         dailySignups,
+        monthlyVisitors,
         monthlySignups,
+        pagesPerSession: engagement.pagesPerSession,
+        returningVisitors,
         totalSignups: rows.length,
+        totalSessions: monthlySessions,
       },
+      analyticsConfigured: !analyticsResult.error,
       waitlistTrend: buildWaitlistTrend(rows),
+      trend: trend.map((item) => ({
+        label: item.label,
+        waitlist: item.waitlist,
+        visitors: item.visitors,
+        returning: item.returning,
+        conversion:
+          item.visitors > 0 ? Number(((item.waitlist / item.visitors) * 100).toFixed(1)) : 0,
+      })),
       waitlistUsers,
       trafficSources,
       lastSynced: new Date().toISOString(),

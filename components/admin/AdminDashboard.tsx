@@ -31,10 +31,10 @@ const navItems = [
 
 type ChartDatum = {
   label: string;
+  visitors: number;
   waitlist: number;
-  daily: number;
-  monthly: number;
-  momentum: number;
+  conversion: number;
+  returning: number;
 };
 
 type WaitlistUser = {
@@ -53,10 +53,20 @@ type TrafficSource = {
 
 type AdminDashboardData = {
   metrics: {
+    averageSessionTime: string;
+    bounceRate: number;
+    conversionRate: number;
+    dailyVisitors: number;
     dailySignups: number;
+    monthlyVisitors: number;
     monthlySignups: number;
+    pagesPerSession: number;
+    returningVisitors: number;
     totalSignups: number;
+    totalSessions: number;
   };
+  analyticsConfigured: boolean;
+  trend: ChartDatum[];
   waitlistTrend: Array<{
     label: string;
     count: number;
@@ -67,13 +77,13 @@ type AdminDashboardData = {
 };
 
 const fallbackChartData: ChartDatum[] = [
-  { label: "Mon", waitlist: 18, daily: 18, monthly: 74, momentum: 22 },
-  { label: "Tue", waitlist: 23, daily: 23, monthly: 97, momentum: 24 },
-  { label: "Wed", waitlist: 26, daily: 26, monthly: 123, momentum: 28 },
-  { label: "Thu", waitlist: 32, daily: 32, monthly: 155, momentum: 31 },
-  { label: "Fri", waitlist: 39, daily: 39, monthly: 194, momentum: 34 },
-  { label: "Sat", waitlist: 43, daily: 43, monthly: 237, momentum: 39 },
-  { label: "Sun", waitlist: 51, daily: 51, monthly: 288, momentum: 44 },
+  { label: "Mon", visitors: 0, waitlist: 0, conversion: 0, returning: 0 },
+  { label: "Tue", visitors: 0, waitlist: 0, conversion: 0, returning: 0 },
+  { label: "Wed", visitors: 0, waitlist: 0, conversion: 0, returning: 0 },
+  { label: "Thu", visitors: 0, waitlist: 0, conversion: 0, returning: 0 },
+  { label: "Fri", visitors: 0, waitlist: 0, conversion: 0, returning: 0 },
+  { label: "Sat", visitors: 0, waitlist: 0, conversion: 0, returning: 0 },
+  { label: "Sun", visitors: 0, waitlist: 0, conversion: 0, returning: 0 },
 ];
 
 const fallbackWaitlistUsers: WaitlistUser[] = [
@@ -157,7 +167,7 @@ function LineChart({
 }: {
   title: string;
   subtitle: string;
-  dataKey: "waitlist" | "daily" | "monthly" | "momentum";
+  dataKey: "visitors" | "waitlist" | "conversion" | "returning";
   data: ChartDatum[];
 }) {
   const values = data.map((item) => item[dataKey]);
@@ -228,71 +238,41 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(1);
   const pageSize = 5;
   const waitlistUsers = data?.waitlistUsers ?? fallbackWaitlistUsers;
-  const trafficSources = data?.trafficSources.length
-    ? data.trafficSources
-    : fallbackTrafficSources;
+  const trafficSources = data ? data.trafficSources : fallbackTrafficSources;
   const totalSignups = data?.metrics.totalSignups ?? waitlistUsers.length;
   const dailySignups = data?.metrics.dailySignups ?? 0;
   const monthlySignups = data?.metrics.monthlySignups ?? 0;
-  const chartData = data?.waitlistTrend.length
-    ? data.waitlistTrend.reduce<ChartDatum[]>((acc, item) => {
-        const previous = acc[acc.length - 1];
-        const twoBack = acc[acc.length - 2];
-        const previousMonthly = previous?.monthly ?? Math.max(monthlySignups - data.waitlistTrend.length, 0);
-        const monthly = previousMonthly + item.count;
-
-        acc.push({
-          label: item.label,
-          waitlist: item.count,
-          daily: item.count,
-          monthly,
-          momentum: item.count - (twoBack?.daily ?? 0),
-        });
-
-        return acc;
-      }, [])
-    : fallbackChartData;
-  const chartSeries = chartData.length
-    ? chartData
-    : [
-        {
-          label: "Now",
-          waitlist: totalSignups,
-          daily: dailySignups,
-          monthly: monthlySignups,
-          momentum: dailySignups,
-        },
-      ];
+  const chartSeries = data?.trend.length ? data.trend : fallbackChartData;
   const metrics = [
     {
       label: "Daily Visitors",
-      value: "Vercel",
-      detail: "Live in Vercel Web Analytics",
+      value: formatNumber(data?.metrics.dailyVisitors ?? 0),
+      detail: "Tracked in Supabase analytics",
     },
     {
       label: "Monthly Visitors",
-      value: "Vercel",
-      detail: "Use Vercel Analytics dashboard",
+      value: formatNumber(data?.metrics.monthlyVisitors ?? 0),
+      detail: `${formatNumber(data?.metrics.totalSessions ?? 0)} sessions this month`,
     },
     {
       label: "Waitlist Signups",
       value: formatNumber(totalSignups),
-      detail: `${formatNumber(dailySignups)} new today`,
+      detail: `${formatNumber(dailySignups)} today, ${formatNumber(monthlySignups)} this month`,
     },
     {
       label: "Conversion Rate",
-      value: "Vercel",
-      detail: "Compare visitors with signups",
+      value: `${data?.metrics.conversionRate ?? 0}%`,
+      detail: "Monthly visitor to signup rate",
     },
     {
       label: "Returning Visitors",
-      value: "Vercel",
-      detail: "Tracked by Vercel Analytics",
+      value: formatNumber(data?.metrics.returningVisitors ?? 0),
+      detail: "Visitors with repeat sessions",
     },
     {
-      label: "Monthly Signups",
-      value: formatNumber(monthlySignups),
-      detail: "Live from Supabase waitlist",
+      label: "Avg. Session Time",
+      value: data?.metrics.averageSessionTime ?? "0m 00s",
+      detail: "Measured from session end events",
     },
   ];
 
@@ -442,6 +422,12 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            {data && !data.analyticsConfigured && (
+              <div className="mt-5 rounded-xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm text-accent">
+                Create the Supabase analytics_events table to start collecting visitor metrics.
+              </div>
+            )}
+
             <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {metrics.map((metric) => (
                 <article key={metric.label} className="rounded-xl border border-border bg-surface p-5 transition duration-200 hover:border-accent/30 hover:bg-surface2">
@@ -454,10 +440,10 @@ export default function AdminDashboard() {
           </section>
 
           <section id="analytics" className="mt-6 grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
-            <LineChart title="Daily signups" subtitle="Live Supabase waitlist entries" dataKey="daily" data={chartSeries} />
+            <LineChart title="Visitor growth" subtitle="Unique visitors by day" dataKey="visitors" data={chartSeries} />
             <LineChart title="Waitlist growth" subtitle="Signup velocity over time" dataKey="waitlist" data={chartSeries} />
-            <LineChart title="Monthly signups" subtitle="Cumulative monthly waitlist growth" dataKey="monthly" data={chartSeries} />
-            <LineChart title="Signup momentum" subtitle="Day-over-day signup movement" dataKey="momentum" data={chartSeries} />
+            <LineChart title="Conversion trend" subtitle="Visitor to signup rate" dataKey="conversion" data={chartSeries} />
+            <LineChart title="Returning visitors" subtitle="Repeat session movement" dataKey="returning" data={chartSeries} />
           </section>
 
           <section className="mt-6 grid gap-4 xl:grid-cols-[1.35fr_0.65fr]" id="waitlist-users">
@@ -569,7 +555,7 @@ export default function AdminDashboard() {
                 <Zap className="h-5 w-5 text-accent" />
               </div>
               <div className="mt-6 space-y-5">
-                {trafficSources.map((item) => (
+                {trafficSources.length ? trafficSources.map((item) => (
                   <div key={item.source}>
                     <div className="flex items-center justify-between text-sm">
                       <span>{item.source}</span>
@@ -579,7 +565,11 @@ export default function AdminDashboard() {
                       <div className="h-2 rounded-full bg-accent" style={{ width: `${item.value}%` }} />
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="rounded-lg border border-border bg-bg px-4 py-6 text-center text-sm text-muted">
+                    Traffic source data will appear after the first tracked page view.
+                  </p>
+                )}
               </div>
             </div>
           </section>
@@ -592,10 +582,10 @@ export default function AdminDashboard() {
               </div>
               <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4">
                 {[
-                  ["Bounce Rate", "36.4%"],
-                  ["Pages / Visit", "4.2"],
-                  ["Repeat Users", "31.8%"],
-                  ["Heatmaps", "Soon"],
+                  ["Bounce Rate", `${data?.metrics.bounceRate ?? 0}%`],
+                  ["Pages / Visit", String(data?.metrics.pagesPerSession ?? 0)],
+                  ["Repeat Users", formatNumber(data?.metrics.returningVisitors ?? 0)],
+                  ["Avg. Session", data?.metrics.averageSessionTime ?? "0m 00s"],
                 ].map(([label, value]) => (
                   <div key={label} className="border-t border-border pt-4">
                     <p className="text-xs text-muted">{label}</p>
@@ -624,7 +614,12 @@ export default function AdminDashboard() {
                 <h2 className="font-display text-xl font-semibold">Settings</h2>
               </div>
               <div className="mt-5 divide-y divide-border text-sm">
-                {["Supabase connected", "Vercel Analytics ready", "PostHog pending", "Email provider configured"].map((item) => (
+                {[
+                  "Supabase connected",
+                  data?.analyticsConfigured ? "Supabase analytics live" : "Create analytics_events table",
+                  "Vercel Analytics tracking installed",
+                  "Email provider configured",
+                ].map((item) => (
                   <div key={item} className="flex items-center justify-between py-3">
                     <span className="text-muted">{item}</span>
                     <span className="h-2 w-2 rounded-full bg-accent" />
