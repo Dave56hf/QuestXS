@@ -2,6 +2,7 @@
 
 import { CheckCircle2 } from "lucide-react";
 import { useState } from "react";
+import { track } from "@vercel/analytics";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 
@@ -41,6 +42,7 @@ export default function WaitlistForm() {
       }
 
       setSubmitted(true);
+      track("waitlist_signup", { role });
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

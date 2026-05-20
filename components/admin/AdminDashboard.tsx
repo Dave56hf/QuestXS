@@ -31,10 +31,10 @@ const navItems = [
 
 type ChartDatum = {
   label: string;
-  visitors: number;
   waitlist: number;
-  conversion: number;
-  returning: number;
+  daily: number;
+  monthly: number;
+  momentum: number;
 };
 
 type WaitlistUser = {
@@ -67,13 +67,13 @@ type AdminDashboardData = {
 };
 
 const fallbackChartData: ChartDatum[] = [
-  { label: "Mon", visitors: 34, waitlist: 18, conversion: 22, returning: 26 },
-  { label: "Tue", visitors: 42, waitlist: 23, conversion: 24, returning: 29 },
-  { label: "Wed", visitors: 38, waitlist: 26, conversion: 28, returning: 28 },
-  { label: "Thu", visitors: 55, waitlist: 32, conversion: 31, returning: 34 },
-  { label: "Fri", visitors: 62, waitlist: 39, conversion: 34, returning: 36 },
-  { label: "Sat", visitors: 68, waitlist: 43, conversion: 39, returning: 41 },
-  { label: "Sun", visitors: 81, waitlist: 51, conversion: 44, returning: 47 },
+  { label: "Mon", waitlist: 18, daily: 18, monthly: 74, momentum: 22 },
+  { label: "Tue", waitlist: 23, daily: 23, monthly: 97, momentum: 24 },
+  { label: "Wed", waitlist: 26, daily: 26, monthly: 123, momentum: 28 },
+  { label: "Thu", waitlist: 32, daily: 32, monthly: 155, momentum: 31 },
+  { label: "Fri", waitlist: 39, daily: 39, monthly: 194, momentum: 34 },
+  { label: "Sat", waitlist: 43, daily: 43, monthly: 237, momentum: 39 },
+  { label: "Sun", waitlist: 51, daily: 51, monthly: 288, momentum: 44 },
 ];
 
 const fallbackWaitlistUsers: WaitlistUser[] = [
@@ -132,6 +132,10 @@ function formatLastSynced(value?: string) {
 }
 
 function chartPath(values: number[]) {
+  if (values.length === 1) {
+    return `M 0 50 L 100 50`;
+  }
+
   const max = Math.max(...values);
   const min = Math.min(...values);
   const range = max - min || 1;
@@ -153,7 +157,7 @@ function LineChart({
 }: {
   title: string;
   subtitle: string;
-  dataKey: "visitors" | "waitlist" | "conversion" | "returning";
+  dataKey: "waitlist" | "daily" | "monthly" | "momentum";
   data: ChartDatum[];
 }) {
   const values = data.map((item) => item[dataKey]);
@@ -227,28 +231,67 @@ export default function AdminDashboard() {
   const trafficSources = data?.trafficSources.length
     ? data.trafficSources
     : fallbackTrafficSources;
+  const totalSignups = data?.metrics.totalSignups ?? waitlistUsers.length;
+  const dailySignups = data?.metrics.dailySignups ?? 0;
+  const monthlySignups = data?.metrics.monthlySignups ?? 0;
   const chartData = data?.waitlistTrend.length
-    ? data.waitlistTrend.map((item, index) => ({
-        label: item.label,
-        visitors: fallbackChartData[index]?.visitors ?? item.count,
-        waitlist: item.count,
-        conversion: fallbackChartData[index]?.conversion ?? item.count,
-        returning: fallbackChartData[index]?.returning ?? item.count,
-      }))
+    ? data.waitlistTrend.reduce<ChartDatum[]>((acc, item) => {
+        const previous = acc[acc.length - 1];
+        const twoBack = acc[acc.length - 2];
+        const previousMonthly = previous?.monthly ?? Math.max(monthlySignups - data.waitlistTrend.length, 0);
+        const monthly = previousMonthly + item.count;
+
+        acc.push({
+          label: item.label,
+          waitlist: item.count,
+          daily: item.count,
+          monthly,
+          momentum: item.count - (twoBack?.daily ?? 0),
+        });
+
+        return acc;
+      }, [])
     : fallbackChartData;
+  const chartSeries = chartData.length
+    ? chartData
+    : [
+        {
+          label: "Now",
+          waitlist: totalSignups,
+          daily: dailySignups,
+          monthly: monthlySignups,
+          momentum: dailySignups,
+        },
+      ];
   const metrics = [
-    { label: "Daily Visitors", value: "Pending", detail: "Connect PostHog or Vercel API" },
-    { label: "Monthly Visitors", value: "Pending", detail: "Connect PostHog or Vercel API" },
+    {
+      label: "Daily Visitors",
+      value: "Vercel",
+      detail: "Live in Vercel Web Analytics",
+    },
+    {
+      label: "Monthly Visitors",
+      value: "Vercel",
+      detail: "Use Vercel Analytics dashboard",
+    },
     {
       label: "Waitlist Signups",
-      value: formatNumber(data?.metrics.totalSignups ?? waitlistUsers.length),
-      detail: `${formatNumber(data?.metrics.dailySignups ?? 0)} new today`,
+      value: formatNumber(totalSignups),
+      detail: `${formatNumber(dailySignups)} new today`,
     },
-    { label: "Conversion Rate", value: "Pending", detail: "Needs visitor analytics" },
-    { label: "Returning Visitors", value: "Pending", detail: "Needs visitor analytics" },
+    {
+      label: "Conversion Rate",
+      value: "Vercel",
+      detail: "Compare visitors with signups",
+    },
+    {
+      label: "Returning Visitors",
+      value: "Vercel",
+      detail: "Tracked by Vercel Analytics",
+    },
     {
       label: "Monthly Signups",
-      value: formatNumber(data?.metrics.monthlySignups ?? 0),
+      value: formatNumber(monthlySignups),
       detail: "Live from Supabase waitlist",
     },
   ];
@@ -411,10 +454,10 @@ export default function AdminDashboard() {
           </section>
 
           <section id="analytics" className="mt-6 grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
-            <LineChart title="Visitor growth" subtitle="Daily acquisition curve" dataKey="visitors" data={chartData} />
-            <LineChart title="Waitlist growth" subtitle="Signup velocity over time" dataKey="waitlist" data={chartData} />
-            <LineChart title="Conversion trend" subtitle="Visitor to waitlist ratio" dataKey="conversion" data={chartData} />
-            <LineChart title="Returning visitors" subtitle="Repeat interest movement" dataKey="returning" data={chartData} />
+            <LineChart title="Daily signups" subtitle="Live Supabase waitlist entries" dataKey="daily" data={chartSeries} />
+            <LineChart title="Waitlist growth" subtitle="Signup velocity over time" dataKey="waitlist" data={chartSeries} />
+            <LineChart title="Monthly signups" subtitle="Cumulative monthly waitlist growth" dataKey="monthly" data={chartSeries} />
+            <LineChart title="Signup momentum" subtitle="Day-over-day signup movement" dataKey="momentum" data={chartSeries} />
           </section>
 
           <section className="mt-6 grid gap-4 xl:grid-cols-[1.35fr_0.65fr]" id="waitlist-users">

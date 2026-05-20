@@ -3,7 +3,6 @@ import FeatureStrip from "@/components/landing/FeatureStrip";
 import Hero from "@/components/landing/Hero";
 import TradersSection from "@/components/landing/TradersSection";
 import WhyQuest from "@/components/landing/WhyQuest";
-import { Analytics } from "@vercel/analytics/next"
 
 export default function Home() {
   return (
@@ -12,7 +11,6 @@ export default function Home() {
       <FeatureStrip />
       <TradersSection />
       <WhyQuest />
-      <Analytics />
       <CtaBanner />
     </>
   );
