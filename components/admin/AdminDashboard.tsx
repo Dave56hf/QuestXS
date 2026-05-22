@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  LogOut,
   Mail,
   Menu,
   Search,
@@ -18,6 +19,7 @@ import {
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import Badge from "@/components/ui/Badge";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const navItems = [
   "Overview",
@@ -305,6 +307,12 @@ export default function AdminDashboard() {
     URL.revokeObjectURL(url);
   }
 
+  async function handleSignOut() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    window.location.href = "/admin/signin";
+  }
+
   return (
     <div className="min-h-screen bg-bg text-white">
       <div className="fixed left-[-12rem] top-24 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
@@ -388,6 +396,15 @@ export default function AdminDashboard() {
               </div>
               <button aria-label="Notifications" className="rounded-lg border border-border bg-surface p-2 text-muted transition hover:text-white">
                 <Bell className="h-4 w-4" />
+              </button>
+              <button
+                aria-label="Sign out"
+                className="rounded-lg border border-border bg-surface p-2 text-muted transition hover:text-white"
+                onClick={() => {
+                  void handleSignOut();
+                }}
+              >
+                <LogOut className="h-4 w-4" />
               </button>
               <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-accent/20 bg-accent/10 font-display text-sm font-semibold text-accent">
                 QX

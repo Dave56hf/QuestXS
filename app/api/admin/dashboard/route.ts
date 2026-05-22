@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdminClient } from "@/lib/supabase";
+import { getCurrentAdminUser, getSupabaseAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -173,6 +173,12 @@ function sessionStats(pageViews: AnalyticsRow[]) {
 
 export async function GET() {
   try {
+    const user = await getCurrentAdminUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdminClient();
     const orderedResult = await supabase
       .from("waitlist")
