@@ -32,16 +32,21 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdminClient();
     const { error } = await supabase.from("analytics_events").insert({
-      event_name: eventName,
-      visitor_id: cleanString(body.visitorId, "anonymous").slice(0, 120),
+      event_type: eventName, // was event_name
       session_id: cleanString(body.sessionId, "session").slice(0, 120),
-      path: cleanString(body.path, "/").slice(0, 500),
+      page_url: cleanString(body.path, "/").slice(0, 500), // was path
       referrer: cleanString(body.referrer, "Direct").slice(0, 500),
-      source: cleanString(body.source, "Direct").slice(0, 120),
+      utm_source: cleanString(body.source, "Direct").slice(0, 120), // was source
       duration_seconds: cleanDuration(body.durationSeconds),
-      user_agent: cleanString(request.headers.get("user-agent"), "Unknown").slice(0, 500),
+      device_type: cleanString(body.deviceType).slice(0, 50) || null,
+      metadata: {
+        user_agent: cleanString(
+          request.headers.get("user-agent"),
+          "Unknown",
+        ).slice(0, 500),
+        visitor_id: cleanString(body.visitorId, "anonymous").slice(0, 120),
+      },
     });
-
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

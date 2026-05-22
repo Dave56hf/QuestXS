@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Quest | Crypto Market Intelligence",
   description:
     "Quest scans the crypto market 24/7 to surface trending coins, momentum shifts, and market opportunities early.",
+
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
