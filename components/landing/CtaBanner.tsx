@@ -8,11 +8,11 @@ export default function CtaBanner() {
         <div className="absolute bottom-0 left-1/2 h-28 w-2/3 -translate-x-1/2 bg-accent/10 blur-3xl" />
         <div className="relative">
           <h2 className="font-display text-4xl font-bold">
-            Be The First To Get Access
+            Get Ahead of the Next Market Cycle
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted">
-            Join the launch list for early access, product updates, and the first
-            look at Quest’s market intelligence engine.
+            Traders who saw the last cycle's winners early had one thing in
+            common: better signals, earlier.
           </p>
           <Button href="/waitlist" variant="primary" size="lg" className="mt-8">
             Join the Waitlist →
