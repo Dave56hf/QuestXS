@@ -14,7 +14,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 const variants: Record<Variant, string> = {
   primary: "bg-accent text-black hover:bg-accent/90",
   outline: "border border-accent text-accent hover:bg-accent/10",
-  ghost: "border border-border text-white hover:bg-surface2",
+  ghost: "border border-border text-headline hover:bg-surface2",
 };
 
 const sizes: Record<Size, string> = {
@@ -31,7 +31,7 @@ export default function Button({
   className = "",
   ...props
 }: ButtonProps) {
-  const classes = `inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`;
+  const classes = `inline-flex items-center justify-center gap-2 rounded-none font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`;
 
   if (href) {
     return (

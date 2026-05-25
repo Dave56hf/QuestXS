@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Disc3, Instagram, X } from "lucide-react";
+import { FaXTwitter, FaDiscord } from "react-icons/fa6";
 
 export default function Footer() {
   return (
@@ -8,7 +8,9 @@ export default function Footer() {
         <Link href="/" className="font-display text-lg font-bold">
           QUEST
         </Link>
-        <p className="text-sm text-muted">© 2024 Quest. All rights reserved.</p>
+        <p className="text-sm text-muted">
+          © {new Date().getFullYear()} Quest. All rights reserved.
+        </p>
         <div className="flex items-center gap-4 text-sm text-muted">
           <a href="#" className="transition hover:text-white">
             Privacy Policy
@@ -17,13 +19,14 @@ export default function Footer() {
             Terms of Use
           </a>
           <a aria-label="X" href="#" className="transition hover:text-accent">
-            <X className="h-4 w-4" />
+            <FaXTwitter size={24} className="cursor-pointer hover:text-black" />
           </a>
-          <a aria-label="Discord" href="#" className="transition hover:text-accent">
-            <Disc3 className="h-4 w-4" />
-          </a>
-          <a aria-label="Instagram" href="#" className="transition hover:text-accent">
-            <Instagram className="h-4 w-4" />
+          <a
+            aria-label="Discord"
+            href="#"
+            className="transition hover:text-accent"
+          >
+            <FaDiscord size={24} className="cursor-pointer hover:text-indigo-500" />
           </a>
         </div>
       </div>

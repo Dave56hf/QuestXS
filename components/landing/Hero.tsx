@@ -10,15 +10,16 @@ export default function Hero() {
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="relative">
           <div className="animate-fade-in opacity-0">
-            <Badge>Coming Soon</Badge>
+            <Badge>Early Access — Limited Spots Open</Badge>
           </div>
           <h1 className="mt-6 animate-fade-up font-display text-5xl font-bold leading-tight opacity-0 sm:text-6xl">
-            Find Crypto <span className="text-accent">Opportunities</span> Before
-            Anyone Else.
+            Find Crypto <span className="text-accent">Opportunities</span>{" "}
+            Before Anyone Else.
           </h1>
           <p className="mt-6 max-w-xl animate-fade-up text-lg leading-8 text-muted opacity-0 [animation-delay:120ms]">
-            Quest scans live market data, social heat, and momentum shifts to help
-            traders spot promising crypto moves before they crowd the charts.
+            Quest tracks on-chain momentum, social heat, and volume shifts in
+            real time so you stop chasing pumps and start catching moves as
+            they build. Built for traders who are tired of being last.
           </p>
           <div className="mt-8 flex animate-fade-up flex-col gap-3 opacity-0 [animation-delay:240ms] sm:flex-row">
             <Button href="/waitlist" variant="primary" size="lg">

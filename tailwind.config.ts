@@ -9,14 +9,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#0a0a0a",
-        surface: "#111111",
-        surface2: "#1a1a1a",
-        border: "#1f1f1f",
-        accent: "#22c55e",
-        accentDim: "rgba(34,197,94,0.12)",
-        muted: "#6b7280",
-        danger: "#ef4444",
+        bg: "#080c10",
+        accent: "#00ff88",
+        accent2: "#0d9b57",
+        surface: "#0d1a0f",
+        surface2: "rgba(13,155,87,0.08)",
+        border: "#0f2d1a",
+        headline: "#f0faf2",
+        body: "#6b9e78",
+        data: "#00ff88",
+        danger: "#f43f5e",
+        muted: "#6b9e78",
       },
       fontFamily: {
         display: ["Space Grotesk", "sans-serif"],
