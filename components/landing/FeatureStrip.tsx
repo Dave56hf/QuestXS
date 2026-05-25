@@ -1,10 +1,26 @@
 import { Bell, Clock, LayoutGrid, Zap } from "lucide-react";
 
 const features = [
-  [Clock, "24/7 Market Scanning", "Continuous tracking across the market."],
-  [Zap, "Smart Signals", "Momentum cues without the noise."],
-  [LayoutGrid, "Clean & Simple", "Readable intelligence at a glance."],
-  [Bell, "Stay Ahead", "Know when attention starts moving."],
+  [
+    Clock,
+    "24/7 Market Scanning",
+    "Quest monitors volume spikes, wallet activity, and social mentions around the clock. Not just price. The stuff that moves before price does.",
+  ],
+  [
+    Zap,
+    "Opportunity Score",
+    "Every coin gets a real-time score based on momentum, social velocity, and on-chain activity. No more guessing. One number that tells you if it's worth watching.",
+  ],
+  [
+    Bell,
+    "Early Warning Alerts",
+    "Set custom triggers on unusual on-chain activity, sudden social spikes, or momentum shifts. Get notified before the crowd notices — not after.",
+  ],
+  [
+    LayoutGrid,
+    "Context-Aware Portfolio View",
+    "Know when attention starts moviSee your holdings inside the market narrative, not isolated from it. Know if the momentum behind your positions is building or fading in real time.",
+  ],
 ];
 
 export default function FeatureStrip() {
