@@ -19,7 +19,7 @@ const features = [
   [
     LayoutGrid,
     "Context-Aware Portfolio View",
-    "Know when attention starts moviSee your holdings inside the market narrative, not isolated from it. Know if the momentum behind your positions is building or fading in real time.",
+    "Know when attention starts see your holdings inside the market narrative, not isolated from it. Know if the momentum behind your positions is building or fading in real time.",
   ],
 ];
 
