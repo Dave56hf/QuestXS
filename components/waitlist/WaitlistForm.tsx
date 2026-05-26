@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { track } from "@vercel/analytics";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -18,6 +18,16 @@ export default function WaitlistForm() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [refCode, setRefCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const urlRef = new URLSearchParams(window.location.search).get("ref");
+      if (urlRef) setRefCode(urlRef);
+    } catch {
+      // noop
+    }
+  }, []);
 
   async function handleSubmit() {
     setError("");
@@ -32,30 +42,64 @@ export default function WaitlistForm() {
       const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: name, email, role }),
+        body: JSON.stringify({
+          action: "join",
+          fullName: name,
+          email,
+          role,
+          referredBy: refCode,
+        }),
       });
-      const data = (await response.json()) as { error?: string };
+      const data = await response.json();
 
       if (!response.ok) {
         setError(data.error ?? "Something went wrong. Please try again.");
         return;
       }
 
+      // Referral/points join (runs after the existing email confirmation succeeds)
+      try {
+        if (refCode) {
+          // noop: refCode is already loaded from ?ref=
+        }
+
+        const joinRes = await fetch("/api/waitlist/join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, name, role, referredBy: refCode }),
+        });
+
+        const joinData = await joinRes.json();
+
+        if (joinRes.ok && joinData?.referralCode) {
+          window.location.href = `/dashboard?code=${encodeURIComponent(joinData.referralCode)}`;
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
       setSubmitted(true);
       track("waitlist_signup", { role });
+
       void fetch("/api/analytics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventName: "waitlist_signup",
-          visitorId: window.localStorage.getItem("questxs_visitor_id") ?? "anonymous",
-          sessionId: window.sessionStorage.getItem("questxs_session_id") ?? "session",
+          visitorId:
+            window.localStorage.getItem("questxs_visitor_id") ?? "anonymous",
+          sessionId:
+            window.sessionStorage.getItem("questxs_session_id") ?? "session",
           path: window.location.pathname,
           referrer: document.referrer || "Direct",
-          source: new URLSearchParams(window.location.search).get("utm_source") ?? "Direct",
+          source:
+            new URLSearchParams(window.location.search).get("utm_source") ??
+            "Direct",
         }),
       });
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
