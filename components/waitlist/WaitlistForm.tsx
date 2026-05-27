@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { track } from "@vercel/analytics";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -12,12 +12,46 @@ const inputClassName =
   "w-full rounded-lg border border-border bg-bg px-4 py-3 text-sm text-white placeholder-muted transition focus:border-accent focus:outline-none";
 
 export default function WaitlistForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [refCode, setRefCode] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      setRefCode(ref);
+    }
+  }, [searchParams]);
+
+  async function openDashboard() {
+    const joinResponse = await fetch("/api/waitlist/join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        name,
+        role,
+        referredBy: refCode || undefined,
+      }),
+    });
+
+    const joinData = (await joinResponse.json()) as {
+      referralCode?: string;
+      error?: string;
+    };
+
+    if (!joinResponse.ok || !joinData.referralCode) {
+      throw new Error(joinData.error ?? "Could not open your dashboard.");
+    }
+
+    window.localStorage.setItem("questxs_dashboard_code", joinData.referralCode);
+    router.push(`/dashboard?code=${joinData.referralCode}`);
+  }
 
   async function handleSubmit() {
     setError("");
@@ -36,46 +70,45 @@ export default function WaitlistForm() {
       });
       const data = (await response.json()) as { error?: string };
 
+      if (response.status === 409) {
+        await openDashboard();
+        return;
+      }
+
       if (!response.ok) {
         setError(data.error ?? "Something went wrong. Please try again.");
         return;
       }
 
-      setSubmitted(true);
       track("waitlist_signup", { role });
       void fetch("/api/analytics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventName: "waitlist_signup",
-          visitorId: window.localStorage.getItem("questxs_visitor_id") ?? "anonymous",
-          sessionId: window.sessionStorage.getItem("questxs_session_id") ?? "session",
+          visitorId:
+            window.localStorage.getItem("questxs_visitor_id") ?? "anonymous",
+          sessionId:
+            window.sessionStorage.getItem("questxs_session_id") ?? "session",
           path: window.location.pathname,
           referrer: document.referrer || "Direct",
-          source: new URLSearchParams(window.location.search).get("utm_source") ?? "Direct",
+          source:
+            new URLSearchParams(window.location.search).get("utm_source") ??
+            "Direct",
         }),
       });
-    } catch {
-      setError("Something went wrong. Please try again.");
+
+      await openDashboard();
+    } catch (err) {
+      console.error("Waitlist signup error:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
-  }
-
-  if (submitted) {
-    return (
-      <Card className="mx-auto max-w-md px-8 py-12 text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/10">
-          <CheckCircle2 className="h-8 w-8 text-accent" />
-        </div>
-        <h3 className="mt-6 font-display text-xl font-semibold">
-          You&apos;re on the list!
-        </h3>
-        <p className="mt-3 text-sm leading-6 text-muted">
-          Check your inbox — we sent you a confirmation email.
-        </p>
-      </Card>
-    );
   }
 
   return (

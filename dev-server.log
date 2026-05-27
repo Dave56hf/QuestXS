@@ -1,0 +1,16 @@
+
+> quest@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 11.8s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 4.7s (128 modules)
+ ○ Compiling /dashboard ...
+[?25h
+
+C:\Users\OPOLO\Downloads\QuestXS-main>

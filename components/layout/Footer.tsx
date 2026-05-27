@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FaXTwitter, FaDiscord } from "react-icons/fa6";
+import { MessageCircle, Send } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -19,14 +19,14 @@ export default function Footer() {
             Terms of Use
           </a>
           <a aria-label="X" href="#" className="transition hover:text-accent">
-            <FaXTwitter size={24} className="cursor-pointer hover:text-black" />
+            <Send size={20} className="cursor-pointer" />
           </a>
           <a
             aria-label="Discord"
             href="#"
             className="transition hover:text-accent"
           >
-            <FaDiscord size={24} className="cursor-pointer hover:text-indigo-500" />
+            <MessageCircle size={20} className="cursor-pointer" />
           </a>
         </div>
       </div>

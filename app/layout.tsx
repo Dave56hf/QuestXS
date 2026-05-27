@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { Suspense } from "react";
 import "./globals.css";
 import SupabaseAnalytics from "@/components/analytics/SupabaseAnalytics";
 import SiteChrome from "@/components/layout/SiteChrome";
+import { WalletProviders } from "@/app/providers";
 
 export const metadata: Metadata = {
   title: "Quest | Crypto Market Intelligence",
@@ -22,9 +24,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-bg text-white antialiased">
-        <SiteChrome>{children}</SiteChrome>
+        <WalletProviders>
+          <Suspense fallback={<main />}>
+            <SiteChrome>{children}</SiteChrome>
+          </Suspense>
+        </WalletProviders>
         <Analytics />
-        <SupabaseAnalytics />
+        <Suspense fallback={null}>
+          <SupabaseAnalytics />
+        </Suspense>
       </body>
     </html>
   );
