@@ -84,22 +84,28 @@ export async function POST(req: NextRequest) {
       throw taskError;
     }
 
-    const newTotal = user.total_points + pointsAwarded;
-    const { error: updateError } = await supabase
-      .from("users")
-      .update({ total_points: newTotal })
-      .eq("id", user.id);
+    // Atomically increment user's total_points via RPC
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "increment_user_points",
+      {
+        _user_id: user.id,
+        _delta: pointsAwarded,
+      },
+    );
 
-    if (updateError) {
-      throw updateError;
+    if (rpcError) {
+      console.error("RPC increment error:", rpcError);
+      throw rpcError;
     }
+
+    const newTotal = Array.isArray(rpcData) ? rpcData[0] : rpcData;
 
     return NextResponse.json(
       {
         alreadyCompleted: false,
         newTotal,
         pointsAwarded,
-        rank: await getRank(supabase, newTotal),
+        rank: await getRank(supabase, Number(newTotal)),
       },
       { status: 200 },
     );

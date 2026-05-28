@@ -58,11 +58,25 @@ function SkeletonLoader() {
 
 export default function LeaderboardPage() {
   const searchParams = useSearchParams();
-  const currentCode = searchParams.get("code");
+  const urlCode = searchParams.get("code");
+  const [resolvedCode, setResolvedCode] = useState<string | null>(urlCode);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
+
+  useEffect(() => {
+    const storedCode =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("questxs_dashboard_code")
+        : null;
+
+    if (!urlCode && storedCode) {
+      setResolvedCode(storedCode);
+    } else if (urlCode) {
+      setResolvedCode(urlCode);
+    }
+  }, [urlCode]);
 
   useEffect(() => {
     async function fetchLeaderboard() {
@@ -72,8 +86,10 @@ export default function LeaderboardPage() {
           const data = (await response.json()) as LeaderboardEntry[];
           setLeaderboard(data);
 
-          if (currentCode) {
-            const userEntry = data.find((u) => u.referral_code === currentCode);
+          if (resolvedCode) {
+            const userEntry = data.find(
+              (u) => u.referral_code === resolvedCode,
+            );
             if (userEntry) {
               setCurrentUserRank(userEntry.rank);
             }
@@ -87,7 +103,7 @@ export default function LeaderboardPage() {
     }
 
     fetchLeaderboard();
-  }, [currentCode]);
+  }, [resolvedCode]);
 
   if (loading) {
     return <SkeletonLoader />;
@@ -96,7 +112,7 @@ export default function LeaderboardPage() {
   // Filter to show only top 100, plus current user if outside top 100
   let displayLeaderboard = leaderboard.slice(0, 100);
   const currentUserData = leaderboard.find(
-    (u) => u.referral_code === currentCode,
+    (u) => u.referral_code === resolvedCode,
   );
   if (currentUserData && currentUserData.rank > 100) {
     // Add current user to the display
@@ -159,7 +175,7 @@ export default function LeaderboardPage() {
             </thead>
             <tbody>
               {displayLeaderboard.map((user, index) => {
-                const isCurrentUser = user.referral_code === currentCode;
+                const isCurrentUser = user.referral_code === resolvedCode;
                 const isOutsideTop100 = user.rank > 100;
 
                 return (

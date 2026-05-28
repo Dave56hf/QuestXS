@@ -25,7 +25,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [storedDashboardCode, setStoredDashboardCode] = useState<string | null>(
-    null,
+    () => {
+      if (typeof window === "undefined") return null;
+      return window.localStorage.getItem(dashboardCodeStorageKey);
+    },
   );
   const isWaitlist = pathname === "/waitlist";
   const isDashboardNav =
@@ -46,7 +49,12 @@ export default function Navbar() {
             ? leaderboardHref
             : href,
       ])
-    : links;
+    : links.map(([label, href]) => [
+        label,
+        label === "Leaderboard" && dashboardCode
+          ? `${href}?code=${encodeURIComponent(dashboardCode)}`
+          : href,
+      ]);
 
   useEffect(() => {
     const code = searchParams.get("code");
@@ -57,7 +65,9 @@ export default function Navbar() {
       return;
     }
 
-    setStoredDashboardCode(window.localStorage.getItem(dashboardCodeStorageKey));
+    setStoredDashboardCode(
+      window.localStorage.getItem(dashboardCodeStorageKey),
+    );
   }, [searchParams]);
 
   return (

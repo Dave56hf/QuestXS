@@ -63,7 +63,6 @@ export async function PATCH(req: NextRequest) {
 
     if (!existingTask) {
       pointsAwarded = WALLET_POINTS;
-      newTotal = user.total_points + pointsAwarded;
 
       const { error: taskError } = await supabase.from("tasks").insert([
         {
@@ -77,14 +76,21 @@ export async function PATCH(req: NextRequest) {
         throw taskError;
       }
 
-      const { error: pointsError } = await supabase
-        .from("users")
-        .update({ total_points: newTotal })
-        .eq("id", user.id);
+      // Atomically increment user's total_points via RPC
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
+        "increment_user_points",
+        {
+          _user_id: user.id,
+          _delta: pointsAwarded,
+        },
+      );
 
-      if (pointsError) {
-        throw pointsError;
+      if (rpcError) {
+        console.error("RPC increment error:", rpcError);
+        throw rpcError;
       }
+
+      newTotal = Array.isArray(rpcData) ? rpcData[0] : rpcData;
 
       alreadyCompleted = false;
     }
@@ -94,7 +100,7 @@ export async function PATCH(req: NextRequest) {
         alreadyCompleted,
         newTotal,
         pointsAwarded,
-        rank: await getRank(supabase, newTotal),
+        rank: await getRank(supabase, Number(newTotal)),
       },
       { status: 200 },
     );

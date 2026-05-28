@@ -135,42 +135,97 @@ export default function DashboardPage() {
   const [taskError, setTaskError] = useState("");
 
   useEffect(() => {
-    if (!code) {
-      const storedCode = window.localStorage.getItem("questxs_dashboard_code");
-      if (storedCode) {
-        router.replace(`/dashboard?code=${encodeURIComponent(storedCode)}`);
-        return;
-      }
-
-      router.push("/waitlist");
-      return;
-    }
-
-    window.localStorage.setItem("questxs_dashboard_code", code);
-
-    async function fetchUser() {
+    async function bootstrapAndLoad() {
       try {
-        const response = await fetch(`/api/user/${code}`);
-        if (!response.ok) {
+        // Prefer URL code; if missing, try localStorage (legacy bootstrap).
+        let resolvedCode = code;
+        if (!resolvedCode) {
+          const storedCode =
+            typeof window !== "undefined"
+              ? window.localStorage.getItem("questxs_dashboard_code")
+              : null;
+          if (storedCode) resolvedCode = storedCode;
+        }
+
+        // Load identity from cookie-backed session.
+        const sessionRes = await fetch("/api/session", {
+          method: "GET",
+          credentials: "same-origin",
+        });
+        if (!sessionRes.ok) {
+          throw new Error("Failed to load session");
+        }
+        const sessionData = (await sessionRes.json()) as {
+          user: UserData | null;
+        };
+
+        if (sessionData.user) {
+          const u = sessionData.user;
+          setUser({ ...u, referrals: u.referrals ?? [] });
+          setCompletedTasks(new Set(u.completed_tasks || []));
+          return;
+        }
+
+        // If no mapping exists yet, bootstrap using URL/localStorage referral code.
+        if (!resolvedCode) {
           router.push("/waitlist");
           return;
         }
-        const data = (await response.json()) as UserData;
-        setUser({ ...data, referrals: data.referrals ?? [] });
-        setCompletedTasks(new Set(data.completed_tasks || []));
+
+        window.localStorage.setItem("questxs_dashboard_code", resolvedCode);
+
+        const bootRes = await fetch("/api/identity/bootstrap", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ referralCode: resolvedCode }),
+        });
+
+        if (!bootRes.ok) {
+          router.push("/waitlist");
+          return;
+        }
+
+        const sessionRes2 = await fetch("/api/session", {
+          method: "GET",
+          credentials: "same-origin",
+        });
+        if (!sessionRes2.ok) {
+          router.push("/waitlist");
+          return;
+        }
+
+        const sessionData2 = (await sessionRes2.json()) as {
+          user: UserData | null;
+        };
+
+        if (!sessionData2.user) {
+          router.push("/waitlist");
+          return;
+        }
+
+        const u = sessionData2.user;
+        setUser({ ...u, referrals: u.referrals ?? [] });
+        setCompletedTasks(new Set(u.completed_tasks || []));
       } catch (err) {
-        console.error("Failed to fetch user:", err);
+        console.error("Failed to load dashboard:", err);
         setError("Failed to load dashboard");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchUser();
+    setLoading(true);
+    setError("");
+    bootstrapAndLoad();
   }, [code, router]);
 
   function applyTaskCompletion(taskType: string, data: TaskCompletionResponse) {
-    setCompletedTasks((current) => new Set([...current, taskType]));
+    setCompletedTasks((current) => {
+      const next = new Set(current);
+      next.add(taskType);
+      return next;
+    });
     setExternalTaskOpened((current) => {
       const next = new Set(current);
       next.delete(taskType);
@@ -182,6 +237,9 @@ export default function DashboardPage() {
             ...current,
             total_points: data.newTotal,
             rank: data.rank,
+            completed_tasks: [
+              ...new Set([...(current.completed_tasks || []), taskType]),
+            ],
           }
         : current,
     );
@@ -192,7 +250,11 @@ export default function DashboardPage() {
     if (completedTasks.has(taskType) || verifyingTasks.has(taskType)) return;
 
     setTaskError("");
-    setVerifyingTasks((current) => new Set([...current, taskType]));
+    setVerifyingTasks((current) => {
+      const next = new Set(current);
+      next.add(taskType);
+      return next;
+    });
 
     try {
       const response = await fetch("/api/tasks/complete", {
@@ -212,6 +274,9 @@ export default function DashboardPage() {
       }
 
       applyTaskCompletion(taskType, data);
+      if (data.newTotal !== undefined) {
+        await refreshSession();
+      }
     } catch (err) {
       console.error("Failed to verify task:", err);
       setTaskError("Unable to verify task. Please try again.");
@@ -226,15 +291,45 @@ export default function DashboardPage() {
 
   function handleExternalLink(taskType: string, url: string) {
     window.open(url, "_blank");
-    setExternalTaskOpened(new Set([...externalTaskOpened, taskType]));
+    setExternalTaskOpened((current) => {
+      const next = new Set(current);
+      next.add(taskType);
+      return next;
+    });
+  }
+
+  async function refreshSession() {
+    try {
+      const response = await fetch("/api/session", {
+        method: "GET",
+        credentials: "same-origin",
+      });
+      if (!response.ok) return;
+      const sessionData = (await response.json()) as {
+        user: UserData | null;
+      };
+      if (!sessionData.user) return;
+      const u = sessionData.user;
+      setUser({ ...u, referrals: u.referrals ?? [] });
+      setCompletedTasks(new Set(u.completed_tasks || []));
+    } catch (err) {
+      console.error("Failed to refresh session:", err);
+    }
   }
 
   function copyReferralLink() {
     if (!user) return;
     const url = `${window.location.origin}/waitlist?ref=${user.referral_code}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+
+    void navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error("Clipboard write failed:", err);
+      });
   }
 
   if (loading) {
@@ -260,7 +355,6 @@ export default function DashboardPage() {
 
   return (
     <div id="overview" className="px-6 py-24 lg:px-8">
-
       {/* 3 Column Grid */}
       <div className="mb-12 grid gap-6 md:grid-cols-3">
         {/* Left Card - Points */}
@@ -405,9 +499,7 @@ export default function DashboardPage() {
           Complete Tasks. Earn QP.
         </h2>
         <p className="mt-2 text-xs text-muted">Each task is one-time only.</p>
-        {taskError && (
-          <p className="mt-4 text-xs text-danger">{taskError}</p>
-        )}
+        {taskError && <p className="mt-4 text-xs text-danger">{taskError}</p>}
 
         <div className="mt-8 space-y-4">
           {TASKS.map((task) => {
@@ -455,9 +547,11 @@ export default function DashboardPage() {
                         if (completedTasks.has(task.type)) return;
 
                         setTaskError("");
-                        setVerifyingTasks(
-                          (current) => new Set([...current, task.type]),
-                        );
+                        setVerifyingTasks((current) => {
+                          const next = new Set(current);
+                          next.add(task.type);
+                          return next;
+                        });
 
                         try {
                           const response = await fetch("/api/user/wallet", {
@@ -480,6 +574,9 @@ export default function DashboardPage() {
                           }
 
                           applyTaskCompletion(task.type, data);
+                          if (data.newTotal !== undefined) {
+                            await refreshSession();
+                          }
                         } catch (err) {
                           console.error("Failed to save wallet:", err);
                           setTaskError(
