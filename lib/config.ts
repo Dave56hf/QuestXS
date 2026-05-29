@@ -74,24 +74,17 @@ export const QUEST_TASKS: QuestTask[] = [
   },
   {
     type: "follow_x",
-    name: "Follow @QuestXS",
+    name: "Follow @Questcac",
     points: QUEST_POINTS.followX,
     action: "external",
-    url: "https://x.com/QuestXS",
+    url: "https://x.com/Questcac?s=20",
   },
   {
     type: "retweet",
     name: "Retweet Pinned Post",
     points: QUEST_POINTS.retweet,
     action: "external",
-    url: "https://twitter.com/QuestXS",
-  },
-  {
-    type: "discord",
-    name: "Join Discord",
-    points: QUEST_POINTS.discord,
-    action: "external",
-    url: "https://discord.gg/quest",
+    url: "https://x.com/Questcac/status/2059706838573297948",
   },
   {
     type: "wallet",
