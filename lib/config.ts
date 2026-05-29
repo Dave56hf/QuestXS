@@ -87,6 +87,13 @@ export const QUEST_TASKS: QuestTask[] = [
     url: "https://x.com/Questcac/status/2059706838573297948",
   },
   {
+    type: "discord",
+    name: "Coming soon",
+    points: QUEST_POINTS.discord,
+    action: "external",
+    url: "#",
+  },
+  {
     type: "wallet",
     name: "Connect Wallet",
     points: QUEST_POINTS.wallet,
