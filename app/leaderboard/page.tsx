@@ -124,7 +124,7 @@ export default function LeaderboardPage() {
       {/* Header Section */}
       <div className="mb-12 max-w-2xl">
         <p className="font-display text-xs uppercase tracking-widest text-accent">
-          // SEASON 1
+           SEASON 1
         </p>
         <h1 className="mt-4 font-display text-4xl font-bold">
           Quest Leaderboard

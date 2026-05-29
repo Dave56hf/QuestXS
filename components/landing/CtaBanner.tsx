@@ -11,7 +11,7 @@ export default function CtaBanner() {
             Get Ahead of the Next Market Cycle
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted">
-            Traders who saw the last cycle's winners early had one thing in
+            Traders who saw the last cycle is winners early had one thing in
             common: better signals, earlier.
           </p>
           <Button href="/waitlist" variant="primary" size="lg" className="mt-8">
