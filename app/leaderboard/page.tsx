@@ -81,7 +81,11 @@ export default function LeaderboardPage() {
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
-        const response = await fetch("/api/leaderboard");
+        const response = await fetch(
+          resolvedCode
+            ? `/api/leaderboard?code=${encodeURIComponent(resolvedCode)}`
+            : `/api/leaderboard`,
+        );
         if (response.ok) {
           const data = (await response.json()) as LeaderboardEntry[];
           setLeaderboard(data);
@@ -124,7 +128,7 @@ export default function LeaderboardPage() {
       {/* Header Section */}
       <div className="mb-12 max-w-2xl">
         <p className="font-display text-xs uppercase tracking-widest text-accent">
-           SEASON 1
+          SEASON 1
         </p>
         <h1 className="mt-4 font-display text-4xl font-bold">
           Quest Leaderboard
