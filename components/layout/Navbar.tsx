@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
+import { QUESTXS_APP } from "@/lib/config";
 
-const dashboardCodeStorageKey = "questxs_dashboard_code";
+const dashboardCodeStorageKey = QUESTXS_APP.dashboardCodeStorageKey;
 
 const links = [
   ["Features", "#features"],
@@ -19,6 +20,7 @@ const links = [
 const dashboardLinks = [
   ["Overview", "/dashboard"],
   ["Leaderboard", "/leaderboard"],
+  ["Profile", "/profile"],
 ];
 
 export default function Navbar() {
@@ -32,7 +34,9 @@ export default function Navbar() {
   );
   const isWaitlist = pathname === "/waitlist";
   const isDashboardNav =
-    pathname.startsWith("/dashboard") || pathname.startsWith("/leaderboard");
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/leaderboard") ||
+    pathname.startsWith("/profile");
   const dashboardCode = searchParams.get("code") ?? storedDashboardCode;
   const overviewHref = dashboardCode
     ? `/dashboard?code=${encodeURIComponent(dashboardCode)}`
@@ -40,6 +44,9 @@ export default function Navbar() {
   const leaderboardHref = dashboardCode
     ? `/leaderboard?code=${encodeURIComponent(dashboardCode)}`
     : "/leaderboard";
+  const profileHref = dashboardCode
+    ? `/profile?code=${encodeURIComponent(dashboardCode)}`
+    : "/profile";
   const navLinks = isDashboardNav
     ? dashboardLinks.map(([label, href]) => [
         label,
@@ -47,6 +54,8 @@ export default function Navbar() {
           ? overviewHref
           : label === "Leaderboard"
             ? leaderboardHref
+            : label === "Profile"
+              ? profileHref
             : href,
       ])
     : links.map(([label, href]) => [

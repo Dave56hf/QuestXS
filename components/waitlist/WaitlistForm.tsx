@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { track } from "@vercel/analytics";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import { QUESTXS_APP } from "@/lib/config";
 
 const roles = ["Trader", "Investor", "Developer", "Content Creator", "Other"];
 
 const inputClassName =
-  "w-full rounded-lg border border-border bg-bg px-4 py-3 text-sm text-white placeholder-muted transition focus:border-accent focus:outline-none";
+  "w-full rounded-none border border-border bg-bg px-4 py-3 text-sm text-white placeholder-muted transition focus:border-accent focus:outline-none";
 
 export default function WaitlistForm() {
   const router = useRouter();
@@ -49,7 +50,10 @@ export default function WaitlistForm() {
       throw new Error(joinData.error ?? "Could not open your dashboard.");
     }
 
-    window.localStorage.setItem("questxs_dashboard_code", joinData.referralCode);
+    window.localStorage.setItem(
+      QUESTXS_APP.dashboardCodeStorageKey,
+      joinData.referralCode,
+    );
     router.push(`/dashboard?code=${joinData.referralCode}`);
   }
 
@@ -87,9 +91,13 @@ export default function WaitlistForm() {
         body: JSON.stringify({
           eventName: "waitlist_signup",
           visitorId:
-            window.localStorage.getItem("questxs_visitor_id") ?? "anonymous",
+            window.localStorage.getItem(
+              QUESTXS_APP.analyticsVisitorStorageKey,
+            ) ?? "anonymous",
           sessionId:
-            window.sessionStorage.getItem("questxs_session_id") ?? "session",
+            window.sessionStorage.getItem(
+              QUESTXS_APP.analyticsSessionStorageKey,
+            ) ?? "session",
           path: window.location.pathname,
           referrer: document.referrer || "Direct",
           source:

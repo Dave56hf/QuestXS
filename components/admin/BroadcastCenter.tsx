@@ -108,8 +108,8 @@ export default function BroadcastCenter({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [autosaveState, setAutosaveState] = useState("Idle");
   const recipientCount = data?.recipientCount ?? fallbackRecipientCount;
-  const drafts = data?.drafts ?? [];
-  const logs = data?.logs ?? [];
+  const drafts = useMemo(() => data?.drafts ?? [], [data?.drafts]);
+  const logs = useMemo(() => data?.logs ?? [], [data?.logs]);
   const activeDraft = useMemo(
     () => drafts.find((draft) => draft.id === activeDraftId),
     [activeDraftId, drafts],

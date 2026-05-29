@@ -1,19 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { isAllowedAdminEmail } from "@/lib/admin-access";
+import { getSupabasePublicEnv } from "@/lib/env";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  let supabaseEnv: ReturnType<typeof getSupabasePublicEnv>;
+  try {
+    supabaseEnv = getSupabasePublicEnv();
+  } catch {
     return response;
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient(supabaseEnv.supabaseUrl, supabaseEnv.supabaseAnonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

@@ -2,9 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { QUESTXS_APP } from "@/lib/config";
 
-const visitorKey = "questxs_visitor_id";
-const sessionKey = "questxs_session_id";
+const visitorKey = QUESTXS_APP.analyticsVisitorStorageKey;
+const sessionKey = QUESTXS_APP.analyticsSessionStorageKey;
 
 function createId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {

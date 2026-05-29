@@ -7,6 +7,14 @@ import Card from "@/components/ui/Card";
 import { MacDots } from "@/components/dashboard/MacDots";
 import Button from "@/components/ui/Button";
 import WalletConnectButton from "@/components/dashboard/WalletConnectButton";
+import {
+  getReferralLink,
+  QUESTXS_APP,
+  QUEST_POINTS,
+  QUEST_TASKS,
+  REFERRAL_MILESTONES,
+  type QuestTask,
+} from "@/lib/config";
 
 interface UserData {
   display: string;
@@ -22,15 +30,6 @@ interface UserData {
   tier: string;
 }
 
-interface TaskInfo {
-  type: string;
-  name: string;
-  points: number;
-  action: "external" | "verify" | "wallet" | "auto";
-  url?: string;
-  twitterHandle?: string;
-}
-
 interface TaskCompletionResponse {
   alreadyCompleted?: boolean;
   newTotal: number;
@@ -39,53 +38,7 @@ interface TaskCompletionResponse {
   error?: string;
 }
 
-const TASKS: TaskInfo[] = [
-  {
-    type: "join_waitlist",
-    name: "Join Waitlist",
-    points: 100,
-    action: "auto",
-  },
-  {
-    type: "follow_x",
-    name: "Follow @Questcac",
-    points: 75,
-    action: "external",
-    url: "https://x.com/Questcac",
-  },
-  {
-    type: "retweet",
-    name: "Retweet Pinned Post",
-    points: 100,
-    action: "external",
-    url: "https://twitter.com/QuestXS",
-  },
-  {
-    type: "discord",
-    name: "Join Discord",
-    points: 75,
-    action: "external",
-    url: "https://discord.gg/quest",
-  },
-  {
-    type: "wallet",
-    name: "Connect Wallet",
-    points: 300,
-    action: "wallet",
-  },
-  {
-    type: "refer_5",
-    name: "Refer 5 Friends",
-    points: 500,
-    action: "auto",
-  },
-  {
-    type: "refer_10",
-    name: "Refer 10 Friends",
-    points: 1500,
-    action: "auto",
-  },
-];
+const TASKS: QuestTask[] = QUEST_TASKS;
 
 function getTierBadgeClass(tier: string): string {
   switch (tier) {
@@ -142,7 +95,7 @@ export default function DashboardPage() {
         if (!resolvedCode) {
           const storedCode =
             typeof window !== "undefined"
-              ? window.localStorage.getItem("questxs_dashboard_code")
+              ? window.localStorage.getItem(QUESTXS_APP.dashboardCodeStorageKey)
               : null;
           if (storedCode) resolvedCode = storedCode;
         }
@@ -172,7 +125,10 @@ export default function DashboardPage() {
           return;
         }
 
-        window.localStorage.setItem("questxs_dashboard_code", resolvedCode);
+        window.localStorage.setItem(
+          QUESTXS_APP.dashboardCodeStorageKey,
+          resolvedCode,
+        );
 
         const bootRes = await fetch("/api/identity/bootstrap", {
           method: "POST",
@@ -319,7 +275,7 @@ export default function DashboardPage() {
 
   function copyReferralLink() {
     if (!user) return;
-    const url = `${window.location.origin}/waitlist?ref=${user.referral_code}`;
+    const url = getReferralLink(user.referral_code, window.location.origin);
 
     void navigator.clipboard
       .writeText(url)
@@ -408,7 +364,7 @@ export default function DashboardPage() {
           </div>
 
           <p className="mt-4 break-all font-mono text-xs text-muted">
-            quest-xs.vercel.app/waitlist?ref={user.referral_code}
+            {getReferralLink(user.referral_code)}
           </p>
 
           <Button
@@ -433,8 +389,12 @@ export default function DashboardPage() {
               joined via your link
             </p>
             <p className="mt-3 text-xs text-muted">
-              Earn 250 QP for every trader you bring in. Bonus points at 5 and
-              10 referrals.
+              Earn {QUEST_POINTS.referral} QP for every trader you bring in.
+              Bonus points at{" "}
+              {REFERRAL_MILESTONES.map((milestone) => milestone.referrals).join(
+                " and ",
+              )}{" "}
+              referrals.
             </p>
             {user.referrals.length > 0 && (
               <div className="mt-5 space-y-2 border-t border-border pt-5">
@@ -465,14 +425,14 @@ export default function DashboardPage() {
 
           <div className="mt-6 space-y-3">
             {[
-              { action: "Join Waitlist", points: 100 },
-              { action: "Refer 1 person", points: 250 },
-              { action: "Connect wallet", points: 300 },
-              { action: "Follow @QuestXS", points: 75 },
-              { action: "Retweet pinned post", points: 100 },
-              { action: "Join Discord", points: 75 },
-              { action: "Refer 5 bonus", points: 500 },
-              { action: "Refer 10 bonus", points: 1500 },
+              { action: "Join Waitlist", points: QUEST_POINTS.joinWaitlist },
+              { action: "Refer 1 person", points: QUEST_POINTS.referral },
+              { action: "Connect wallet", points: QUEST_POINTS.wallet },
+              { action: "Follow @QuestXS", points: QUEST_POINTS.followX },
+              { action: "Retweet pinned post", points: QUEST_POINTS.retweet },
+              { action: "Join Discord", points: QUEST_POINTS.discord },
+              { action: "Refer 5 bonus", points: QUEST_POINTS.refer5Bonus },
+              { action: "Refer 10 bonus", points: QUEST_POINTS.refer10Bonus },
             ].map((item) => (
               <div key={item.action} className="flex justify-between text-sm">
                 <span className="text-muted">{item.action}</span>
@@ -510,10 +470,10 @@ export default function DashboardPage() {
             return (
               <div
                 key={task.type}
-                className="flex items-center justify-between rounded-lg border border-border/50 bg-surface/30 p-4"
+                className="flex items-center justify-between rounded-none border border-border/50 bg-surface/30 p-4"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-6 w-6 items-center justify-center rounded border border-border">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-none border border-border">
                     {isCompleted && (
                       <CheckCircle2 className="h-5 w-5 text-accent" />
                     )}
@@ -626,7 +586,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Bottom Banner */}
-        <div className="mt-8 rounded-lg border border-accent/20 bg-accent/5 p-4 text-center">
+        <div className="mt-8 rounded-none border border-accent/20 bg-accent/5 p-4 text-center">
           <p className="font-display text-sm italic text-muted">
             Quest Points will matter. Season 1 is live. Stay tuned.
           </p>

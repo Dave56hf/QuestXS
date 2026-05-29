@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
-
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain) return email;
-  return local.slice(0, 2) + "***@" + domain;
-}
+import { API_LIMITS, getTierForRank, maskEmail } from "@/lib/config";
 
 export async function GET(
   req: NextRequest,
@@ -55,19 +50,8 @@ export async function GET(
       .from("referrals")
       .select("referee_email, points_awarded", { count: "exact" })
       .eq("referrer_code", code)
-      .order("referee_email", { ascending: true });
-
-    // Determine tier
-    let tier = "CONTRIBUTOR";
-    if (rank <= 10) {
-      tier = "LEGEND";
-    } else if (rank <= 50) {
-      tier = "ELITE";
-    } else if (rank <= 100) {
-      tier = "TOP 100";
-    } else if (rank <= 500) {
-      tier = "EARLY CONTRIBUTOR";
-    }
+      .order("referee_email", { ascending: true })
+      .limit(API_LIMITS.userReferrals);
 
     return NextResponse.json(
       {
@@ -81,7 +65,7 @@ export async function GET(
           display: maskEmail(referral.referee_email),
           points_awarded: referral.points_awarded,
         })),
-        tier,
+        tier: getTierForRank(rank),
       },
       { status: 200 },
     );

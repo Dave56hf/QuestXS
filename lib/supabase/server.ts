@@ -2,14 +2,10 @@ import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { isAllowedAdminEmail } from "@/lib/admin-access";
+import { getSupabaseAdminEnv, getSupabasePublicEnv } from "@/lib/env";
 
 export function createSupabaseServerClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase environment variables are not configured.");
-  }
+  const { supabaseAnonKey, supabaseUrl } = getSupabasePublicEnv();
 
   const cookieStore = cookies();
 
@@ -32,24 +28,13 @@ export function createSupabaseServerClient() {
 }
 
 export function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase environment variables are not configured.");
-  }
+  const { supabaseAnonKey, supabaseUrl } = getSupabasePublicEnv();
 
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
 export function getSupabaseAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
-
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    throw new Error("Supabase admin environment variables are not configured.");
-  }
+  const { supabaseServiceRoleKey, supabaseUrl } = getSupabaseAdminEnv();
 
   return createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {

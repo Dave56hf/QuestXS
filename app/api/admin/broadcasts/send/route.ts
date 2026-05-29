@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendBroadcastEmail } from "@/lib/email/sendBroadcast";
 import { getCurrentAdminUser, getSupabaseAdminClient } from "@/lib/supabase/server";
+import { API_LIMITS } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
-
-const batchSize = 25;
 
 function uniqueEmails(rows: Array<{ email?: string | null }>) {
   return [
@@ -61,7 +60,10 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json(
+          { error: "Unable to send broadcast." },
+          { status: 500 },
+        );
       }
 
       if (draft?.status === "sent") {
@@ -82,7 +84,10 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json(
+          { error: "Unable to send broadcast." },
+          { status: 500 },
+        );
       }
 
       activeDraftId = draft.id;
@@ -90,10 +95,14 @@ export async function POST(request: NextRequest) {
 
     const { data: users, error: usersError } = await supabase
       .from("waitlist")
-      .select("*");
+      .select("email, status")
+      .limit(API_LIMITS.broadcastRecipients);
 
     if (usersError) {
-      return NextResponse.json({ error: usersError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to send broadcast." },
+        { status: 500 },
+      );
     }
 
     const targetedUsers =
@@ -108,8 +117,15 @@ export async function POST(request: NextRequest) {
     let sent = 0;
     let failed = 0;
 
-    for (let index = 0; index < recipients.length; index += batchSize) {
-      const batch = recipients.slice(index, index + batchSize);
+    for (
+      let index = 0;
+      index < recipients.length;
+      index += API_LIMITS.broadcastBatchSize
+    ) {
+      const batch = recipients.slice(
+        index,
+        index + API_LIMITS.broadcastBatchSize,
+      );
       const results = await Promise.allSettled(
         batch.map((to) =>
           sendBroadcastEmail({
@@ -149,9 +165,10 @@ export async function POST(request: NextRequest) {
       total: recipients.length,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unable to send broadcast.";
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Broadcast send error:", error);
+    return NextResponse.json(
+      { error: "Unable to send broadcast." },
+      { status: 500 },
+    );
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isProductionEnv } from "@/lib/env";
 
 const COOKIE_NAME = "questxs_anon_id";
 
@@ -28,7 +29,7 @@ export function ensureAnonIdInResponse(
   response.cookies.set(COOKIE_NAME, id, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isProductionEnv(),
     path: "/",
     // 180 days: long enough for “return later” but not permanent.
     maxAge: 60 * 60 * 24 * 180,

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
-
-const WALLET_POINTS = 300;
+import { QUEST_POINTS } from "@/lib/config";
 
 async function getRank(
   supabase: ReturnType<typeof getSupabaseAdminClient>,
@@ -62,7 +61,7 @@ export async function PATCH(req: NextRequest) {
     let alreadyCompleted = Boolean(existingTask);
 
     if (!existingTask) {
-      pointsAwarded = WALLET_POINTS;
+      pointsAwarded = QUEST_POINTS.wallet;
 
       const { error: taskError } = await supabase.from("tasks").insert([
         {

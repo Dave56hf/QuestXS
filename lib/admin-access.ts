@@ -1,10 +1,11 @@
+import { getAdminAccessEnv } from "@/lib/env";
+
 export function isAllowedAdminEmail(email?: string | null) {
   if (!email) {
     return false;
   }
 
-  const configuredEmails =
-    process.env.ADMIN_ALLOWED_EMAILS ?? process.env.ADMIN_EMAIL ?? "";
+  const { allowedEmails: configuredEmails } = getAdminAccessEnv();
   const allowedEmails = configuredEmails
     .split(",")
     .map((item) => item.trim().toLowerCase())

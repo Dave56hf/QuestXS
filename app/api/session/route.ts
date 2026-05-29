@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
 import {
   ensureAnonIdInResponse,
-  getAnonIdFromRequest,
 } from "@/lib/identity/anon-cookie";
+import { API_LIMITS, getTierForRank, maskEmail } from "@/lib/config";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const supabase = getSupabaseAdminClient();
@@ -22,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     if (identityError) {
       return NextResponse.json(
-        { error: identityError.message },
+        { error: "Unable to load session." },
         { status: 500 },
       );
     }
@@ -45,7 +47,10 @@ export async function GET(req: NextRequest) {
       .maybeSingle();
 
     if (userError) {
-      return NextResponse.json({ error: userError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to load session." },
+        { status: 500 },
+      );
     }
     if (!user) {
       return NextResponse.json({ user: null }, { status: 404 });
@@ -72,20 +77,8 @@ export async function GET(req: NextRequest) {
       .from("referrals")
       .select("referee_email, points_awarded", { count: "exact" })
       .eq("referrer_code", user.referral_code)
-      .order("referee_email", { ascending: true });
-
-    // Tier.
-    let tier = "CONTRIBUTOR";
-    if (rank <= 10) tier = "LEGEND";
-    else if (rank <= 50) tier = "ELITE";
-    else if (rank <= 100) tier = "TOP 100";
-    else if (rank <= 500) tier = "EARLY CONTRIBUTOR";
-
-    const maskEmail = (email: string) => {
-      const [local, domain] = email.split("@");
-      if (!domain) return email;
-      return local.slice(0, 2) + "***@" + domain;
-    };
+      .order("referee_email", { ascending: true })
+      .limit(API_LIMITS.sessionReferrals);
 
     return NextResponse.json(
       {
@@ -100,15 +93,16 @@ export async function GET(req: NextRequest) {
             display: maskEmail(r.referee_email),
             points_awarded: r.points_awarded,
           })),
-          tier,
+          tier: getTierForRank(rank),
         },
         anonId,
       },
       { status: 200, headers: response.headers },
     );
   } catch (err) {
+    console.error("Session error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unable to load session." },
+      { error: "Unable to load session." },
       { status: 500 },
     );
   }

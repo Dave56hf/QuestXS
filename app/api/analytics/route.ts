@@ -48,14 +48,19 @@ export async function POST(request: NextRequest) {
       },
     });
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Analytics insert error:", error);
+      return NextResponse.json(
+        { error: "Unable to record analytics event." },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unable to record analytics event.";
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Analytics API error:", error);
+    return NextResponse.json(
+      { error: "Unable to record analytics event." },
+      { status: 500 },
+    );
   }
 }

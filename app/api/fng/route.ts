@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CACHE_REVALIDATE_SECONDS, EXTERNAL_ENDPOINTS } from "@/lib/config";
 
 type FearGreedResponse = {
   data: Array<{ value: string; value_classification: string }>;
@@ -6,8 +7,8 @@ type FearGreedResponse = {
 
 export async function GET() {
   try {
-    const response = await fetch("https://api.alternative.me/fng/", {
-      next: { revalidate: 3600 },
+    const response = await fetch(EXTERNAL_ENDPOINTS.fearGreedUrl, {
+      next: { revalidate: CACHE_REVALIDATE_SECONDS.fearGreed },
     });
 
     if (!response.ok) {

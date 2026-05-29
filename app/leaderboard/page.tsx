@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-import Link from "next/link";
+import { API_LIMITS, QUESTXS_APP } from "@/lib/config";
 
 interface LeaderboardEntry {
   rank: number;
@@ -17,22 +16,22 @@ interface LeaderboardEntry {
 function getTierBadgeClass(tier: string): string {
   switch (tier) {
     case "LEGEND":
-      return "bg-accent/20 text-accent border border-accent/30 px-2 py-1 rounded text-xs font-mono uppercase";
+      return "bg-accent/20 text-accent border border-accent/30 px-2 py-1 rounded-full text-xs font-mono uppercase";
     case "ELITE":
-      return "bg-accent/10 text-accent/80 px-2 py-1 rounded text-xs font-mono uppercase";
+      return "bg-accent/10 text-accent/80 px-2 py-1 rounded-full text-xs font-mono uppercase";
     case "TOP 100":
-      return "border border-border text-muted px-2 py-1 rounded text-xs font-mono uppercase";
+      return "border border-border text-muted px-2 py-1 rounded-full text-xs font-mono uppercase";
     case "EARLY CONTRIBUTOR":
-      return "text-muted px-2 py-1 rounded text-xs font-mono uppercase";
+      return "text-muted px-2 py-1 rounded-full text-xs font-mono uppercase";
     default:
-      return "text-muted/50 px-2 py-1 rounded text-xs font-mono uppercase";
+      return "text-muted/50 px-2 py-1 rounded-full text-xs font-mono uppercase";
   }
 }
 
 function getRankBorderClass(rank: number): string {
   if (rank === 1) return "border-l-4 border-l-accent";
   if (rank === 2) return "border-l-4 border-l-muted";
-  if (rank === 3) return "border-l-4 border-l-amber-600";
+  if (rank === 3) return "border-l-4 border-l-border";
   return "";
 }
 
@@ -68,7 +67,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     const storedCode =
       typeof window !== "undefined"
-        ? window.localStorage.getItem("questxs_dashboard_code")
+        ? window.localStorage.getItem(QUESTXS_APP.dashboardCodeStorageKey)
         : null;
 
     if (!urlCode && storedCode) {
@@ -114,11 +113,11 @@ export default function LeaderboardPage() {
   }
 
   // Filter to show only top 100, plus current user if outside top 100
-  let displayLeaderboard = leaderboard.slice(0, 100);
+  let displayLeaderboard = leaderboard.slice(0, API_LIMITS.leaderboard);
   const currentUserData = leaderboard.find(
     (u) => u.referral_code === resolvedCode,
   );
-  if (currentUserData && currentUserData.rank > 100) {
+  if (currentUserData && currentUserData.rank > API_LIMITS.leaderboard) {
     // Add current user to the display
     displayLeaderboard = [...displayLeaderboard, currentUserData];
   }
@@ -224,16 +223,6 @@ export default function LeaderboardPage() {
           </table>
         </div>
       </Card>
-
-      {/* Footer CTA */}
-      <div className="mt-12 rounded-lg border border-border bg-surface/30 p-8 text-center">
-        <p className="mb-4 text-sm text-muted">Not on the leaderboard yet?</p>
-        <Link href="/waitlist">
-          <Button variant="primary">
-            Join the Waitlist and Start Earning QP →
-          </Button>
-        </Link>
-      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentAdminUser, getSupabaseAdminClient } from "@/lib/supabase/server";
+import { API_LIMITS } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -183,14 +184,18 @@ export async function GET() {
     const orderedResult = await supabase
       .from("waitlist")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(API_LIMITS.adminDashboardRows);
     const result = orderedResult.error
-      ? await supabase.from("waitlist").select("*")
+      ? await supabase.from("waitlist").select("*").limit(API_LIMITS.adminDashboardRows)
       : orderedResult;
     const { data, error } = result;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to load admin dashboard." },
+        { status: 500 },
+      );
     }
 
     const rows = data ?? [];
@@ -202,7 +207,8 @@ export async function GET() {
     const analyticsResult = await supabase
       .from("analytics_events")
       .select("*")
-      .gte("created_at", monthStart.toISOString());
+      .gte("created_at", monthStart.toISOString())
+      .limit(API_LIMITS.adminAnalyticsRows);
     const analyticsRows = analyticsResult.error ? [] : (analyticsResult.data ?? []);
     const pageViews = analyticsRows.filter(
       (row) => readString(row, ["event_name"], "") === "page_view",
@@ -283,9 +289,10 @@ export async function GET() {
       lastSynced: new Date().toISOString(),
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unable to load admin dashboard.";
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Admin dashboard error:", error);
+    return NextResponse.json(
+      { error: "Unable to load admin dashboard." },
+      { status: 500 },
+    );
   }
 }

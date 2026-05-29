@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
-
-const JOIN_POINTS = 100;
-const REFERRAL_POINTS = 250;
-const REFERRAL_BONUSES = new Map([
-  [5, 500],
-  [10, 1500],
-]);
+import {
+  QUEST_POINTS,
+  REFERRAL_BONUSES,
+  REFERRAL_CODE,
+} from "@/lib/config";
 
 function generateReferralCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const code =
-    "QUEST-" +
+    REFERRAL_CODE.prefix +
     Array.from(
-      { length: 6 },
-      () => chars[Math.floor(Math.random() * chars.length)],
+      { length: REFERRAL_CODE.length },
+      () =>
+        REFERRAL_CODE.alphabet[
+          Math.floor(Math.random() * REFERRAL_CODE.alphabet.length)
+        ],
     ).join("");
   return code;
 }
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
           email: normalizedEmail,
           referral_code: referralCode,
           referred_by: validReferrer?.referral_code ?? null,
-          total_points: JOIN_POINTS,
+          total_points: QUEST_POINTS.joinWaitlist,
         },
       ])
       .select()
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
       {
         user_id: newUser.id,
         task_type: "join_waitlist",
-        points_awarded: JOIN_POINTS,
+        points_awarded: QUEST_POINTS.joinWaitlist,
       },
     ]);
 
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
             {
               referrer_code: validReferrer.referral_code,
               referee_email: normalizedEmail,
-              points_awarded: REFERRAL_POINTS,
+              points_awarded: QUEST_POINTS.referral,
             },
           ]);
 
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
           .from("users")
           .update({
             total_points:
-              validReferrer.total_points + REFERRAL_POINTS + bonusAwarded,
+              validReferrer.total_points + QUEST_POINTS.referral + bonusAwarded,
           })
           .eq("id", validReferrer.id);
 
@@ -180,14 +180,14 @@ export async function POST(req: NextRequest) {
     const { count: rankCount } = await supabase
       .from("users")
       .select("*", { count: "exact", head: true })
-      .gt("total_points", JOIN_POINTS);
+      .gt("total_points", QUEST_POINTS.joinWaitlist);
 
     const rank = (rankCount ?? 0) + 1;
 
     return NextResponse.json(
       {
         referralCode,
-        totalPoints: JOIN_POINTS,
+        totalPoints: QUEST_POINTS.joinWaitlist,
         rank,
         referralTracked,
         referralCount,

@@ -1,10 +1,10 @@
-const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
+import { EXTERNAL_ENDPOINTS } from "@/lib/config";
 
 export async function coingeckoFetch<T>(
   path: string,
   revalidate: number,
 ): Promise<T> {
-  const response = await fetch(`${COINGECKO_BASE}${path}`, {
+  const response = await fetch(`${EXTERNAL_ENDPOINTS.coingeckoBaseUrl}${path}`, {
     next: { revalidate },
     headers: { accept: "application/json" },
   });

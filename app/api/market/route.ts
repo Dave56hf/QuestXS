@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { coingeckoFetch } from "@/lib/coingecko";
+import { CACHE_REVALIDATE_SECONDS } from "@/lib/config";
 
 type GlobalResponse = {
   data: {
@@ -13,7 +14,10 @@ type GlobalResponse = {
 
 export async function GET() {
   try {
-    const payload = await coingeckoFetch<GlobalResponse>("/global", 60);
+    const payload = await coingeckoFetch<GlobalResponse>(
+      "/global",
+      CACHE_REVALIDATE_SECONDS.market,
+    );
     const data = payload.data;
 
     return NextResponse.json({

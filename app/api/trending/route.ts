@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { coingeckoFetch } from "@/lib/coingecko";
+import { CACHE_REVALIDATE_SECONDS, MARKET_LIMITS } from "@/lib/config";
 import type { TrendingCoin } from "@/types/crypto";
 
 type TrendingResponse = {
@@ -28,10 +29,12 @@ export async function GET() {
   try {
     const payload = await coingeckoFetch<TrendingResponse>(
       "/search/trending",
-      300,
+      CACHE_REVALIDATE_SECONDS.trending,
     );
 
-    const coins = payload.coins.slice(0, 6).map(({ item }, index) => ({
+    const coins = payload.coins
+      .slice(0, MARKET_LIMITS.trendingCoins)
+      .map(({ item }, index) => ({
       id: item.id,
       name: item.name,
       symbol: item.symbol,

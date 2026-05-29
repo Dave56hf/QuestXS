@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
-import {
-  ensureAnonIdInResponse,
-  QUESTXS_ANON_ID_COOKIE,
-} from "@/lib/identity/anon-cookie";
+import { ensureAnonIdInResponse } from "@/lib/identity/anon-cookie";
 
 function normalizeReferralCode(code?: string | null): string | null {
   const normalized = code?.trim().toUpperCase();
@@ -35,7 +32,10 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (userError) {
-      return NextResponse.json({ error: userError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to bootstrap session." },
+        { status: 500 },
+      );
     }
 
     if (!user) {
@@ -53,7 +53,10 @@ export async function POST(req: NextRequest) {
       .upsert({ anon_id: anonId, user_id: user.id }, { onConflict: "anon_id" });
 
     if (upsertError) {
-      return NextResponse.json({ error: upsertError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to bootstrap session." },
+        { status: 500 },
+      );
     }
 
     // Re-fetch for convenience.
@@ -63,8 +66,9 @@ export async function POST(req: NextRequest) {
       { status: 200, headers: response.headers },
     );
   } catch (err) {
+    console.error("Identity bootstrap error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Bootstrap failed" },
+      { error: "Unable to bootstrap session." },
       { status: 500 },
     );
   }

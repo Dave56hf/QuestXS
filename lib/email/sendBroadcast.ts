@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+import { getEmailEnv } from "@/lib/env";
 
 type SendBroadcastEmailInput = {
   content: string;
@@ -69,7 +70,7 @@ export function renderBroadcastEmail({
 }
 
 function getFromAddress() {
-  return process.env.BROADCAST_FROM_EMAIL ?? process.env.GMAIL_USER ?? "";
+  return getEmailEnv().broadcastFromEmail;
 }
 
 export async function sendBroadcastEmail({
@@ -85,8 +86,10 @@ export async function sendBroadcastEmail({
 
   const html = renderBroadcastEmail({ content, subject });
 
-  if (process.env.RESEND_API_KEY) {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+  const emailEnv = getEmailEnv();
+
+  if (emailEnv.resendApiKey) {
+    const resend = new Resend(emailEnv.resendApiKey);
     const { error } = await resend.emails.send({
       from,
       html,
@@ -101,15 +104,15 @@ export async function sendBroadcastEmail({
     return;
   }
 
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+  if (!emailEnv.gmailUser || !emailEnv.gmailAppPassword) {
     throw new Error("Nodemailer credentials are not configured.");
   }
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
+      user: emailEnv.gmailUser,
+      pass: emailEnv.gmailAppPassword,
     },
   });
 

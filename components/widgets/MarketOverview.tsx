@@ -5,6 +5,7 @@ import useSWR from "swr";
 import Card from "@/components/ui/Card";
 import Skeleton from "@/components/ui/Skeleton";
 import { useMarketData } from "@/hooks/useMarketData";
+import { CACHE_REVALIDATE_SECONDS } from "@/lib/config";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import type { FearGreed } from "@/types/crypto";
 
@@ -36,7 +37,9 @@ export default function MarketOverview() {
     error: fngError,
     isLoading: fngLoading,
     mutate: refetchFng,
-  } = useSWR<FearGreed>("/api/fng", fetcher, { refreshInterval: 3600000 });
+  } = useSWR<FearGreed>("/api/fng", fetcher, {
+    refreshInterval: CACHE_REVALIDATE_SECONDS.fearGreed * 1000,
+  });
 
   if (error) {
     return (

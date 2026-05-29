@@ -1,4 +1,5 @@
 import * as React from "react";
+import { QUESTXS_APP } from "@/lib/config";
 
 interface EmailTemplateProps {
   firstName: string;
@@ -132,7 +133,7 @@ export function EmailTemplate({ firstName }: EmailTemplateProps) {
           }}
         >
           <a
-            href="https://quest-xs.vercel.app"
+            href={QUESTXS_APP.publicBaseUrl}
             style={{
               display: "inline-block",
               padding: "14px 28px",
@@ -187,7 +188,7 @@ export function EmailTemplate({ firstName }: EmailTemplateProps) {
           }}
         >
           You are receiving this email because you joined the Quest waitlist at
-          https://quest-xs.vercel.app
+          {QUESTXS_APP.publicBaseUrl}
         </p>
       </div>
     </div>

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { API_LIMITS, getTierForRank, maskEmail } from "@/lib/config";
 
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain) return email;
-  return local.slice(0, 2) + "***@" + domain;
-}
+export const dynamic = "force-dynamic";
+
+type LeaderboardUser = {
+  email: string;
+  referral_code: string;
+  total_points: number;
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,14 +22,15 @@ export async function GET(req: NextRequest) {
       .from("users")
       .select("referral_code, email, total_points")
       .order("total_points", { ascending: false })
-      .limit(100);
+      .limit(API_LIMITS.leaderboard);
 
     if (error) {
       throw error;
     }
 
     // Optionally include the current user even if they are not in the top 100.
-    let currentUser: any = null;
+    let currentUser: LeaderboardUser | null = null;
+    let currentUserRank: number | null = null;
     if (code) {
       const { data: userRow, error: userError } = await supabase
         .from("users")
@@ -38,10 +42,19 @@ export async function GET(req: NextRequest) {
         throw userError;
       }
       currentUser = userRow ?? null;
+
+      if (currentUser) {
+        const { count: rankCount } = await supabase
+          .from("users")
+          .select("*", { count: "exact", head: true })
+          .gt("total_points", currentUser.total_points);
+
+        currentUserRank = (rankCount ?? 0) + 1;
+      }
     }
 
     const merged = (() => {
-      const map = new Map<string, any>();
+      const map = new Map<string, LeaderboardUser>();
       for (const u of users ?? []) {
         if (u?.referral_code) map.set(u.referral_code, u);
       }
@@ -54,29 +67,24 @@ export async function GET(req: NextRequest) {
     merged.sort((a, b) => (b.total_points ?? 0) - (a.total_points ?? 0));
 
     const leaderboard = merged.map((user, index) => {
-      const rank = index + 1;
-      let tier = "CONTRIBUTOR";
-
-      if (rank <= 10) {
-        tier = "LEGEND";
-      } else if (rank <= 50) {
-        tier = "ELITE";
-      } else if (rank <= 100) {
-        tier = "TOP 100";
-      } else if (rank <= 500) {
-        tier = "EARLY CONTRIBUTOR";
-      }
+      const rank =
+        user.referral_code === currentUser?.referral_code && currentUserRank
+          ? currentUserRank
+          : index + 1;
 
       return {
         rank,
         display: maskEmail(user.email),
         referral_code: user.referral_code,
         total_points: user.total_points,
-        tier,
+        tier: getTierForRank(rank),
       };
     });
 
-    return NextResponse.json(leaderboard.slice(0, 101), { status: 200 });
+    return NextResponse.json(
+      leaderboard.slice(0, API_LIMITS.leaderboardWithCurrentUser),
+      { status: 200 },
+    );
   } catch (err) {
     console.error("Leaderboard error:", err);
     return NextResponse.json(

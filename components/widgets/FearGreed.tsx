@@ -3,13 +3,14 @@
 import useSWR from "swr";
 import Card from "@/components/ui/Card";
 import Skeleton from "@/components/ui/Skeleton";
+import { CACHE_REVALIDATE_SECONDS } from "@/lib/config";
 import type { FearGreed as FearGreedType } from "@/types/crypto";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function FearGreed() {
   const { data, error, isLoading } = useSWR<FearGreedType>("/api/fng", fetcher, {
-    refreshInterval: 3600000,
+    refreshInterval: CACHE_REVALIDATE_SECONDS.fearGreed * 1000,
   });
 
   const tone =

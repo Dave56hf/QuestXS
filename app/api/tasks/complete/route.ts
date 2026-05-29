@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { QUEST_TASKS, TASK_POINTS } from "@/lib/config";
 
-const TASK_POINTS: Record<string, number> = {
-  follow_x: 75,
-  retweet: 100,
-  discord: 75,
-};
+const VERIFIABLE_TASK_TYPES = new Set(
+  QUEST_TASKS.filter((task) => task.action === "external").map(
+    (task) => task.type,
+  ),
+);
 
 async function getRank(
   supabase: ReturnType<typeof getSupabaseAdminClient>,
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     const pointsAwarded = TASK_POINTS[taskType] ?? 0;
-    if (pointsAwarded === 0) {
+    if (!VERIFIABLE_TASK_TYPES.has(taskType) || pointsAwarded === 0) {
       return NextResponse.json(
         { error: "Invalid task type." },
         { status: 400 },

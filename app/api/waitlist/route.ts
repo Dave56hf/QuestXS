@@ -3,6 +3,7 @@ import { getSupabaseClient } from "@/lib/supabase";
 import nodemailer from "nodemailer";
 import { render } from "@react-email/render";
 import { EmailTemplate } from "../../../components/email-template/email-template";
+import { getEmailEnv } from "@/lib/env";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseClient();
+    const emailEnv = getEmailEnv();
 
     const { error: dbError } = await supabase
       .from("waitlist")
@@ -47,8 +49,8 @@ export async function POST(req: NextRequest) {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
+        user: emailEnv.gmailUser,
+        pass: emailEnv.gmailAppPassword,
       },
     });
 
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
     );
 
     await transporter.sendMail({
-      from: `Quest <${process.env.GMAIL_USER}>`,
+      from: `Quest <${emailEnv.gmailUser}>`,
       to: email,
       subject: "You're on the Quest waitlist!",
       html: htmlContent,

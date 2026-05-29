@@ -40,14 +40,19 @@ export async function PATCH(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to update draft." },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ draft: data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to update draft.";
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Broadcast update error:", error);
+    return NextResponse.json(
+      { error: "Unable to update draft." },
+      { status: 500 },
+    );
   }
 }
 
@@ -70,13 +75,18 @@ export async function DELETE(
       .neq("status", "sent");
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to delete draft." },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to delete draft.";
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Broadcast delete error:", error);
+    return NextResponse.json(
+      { error: "Unable to delete draft." },
+      { status: 500 },
+    );
   }
 }
