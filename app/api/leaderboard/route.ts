@@ -53,22 +53,35 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const topList = users ?? [];
+
+    // Whether the current user already appears in the top list
+    const currentUserInTopList =
+      currentUser &&
+      topList.some((u) => u.referral_code === currentUser.referral_code);
+
     const merged = (() => {
       const map = new Map<string, LeaderboardUser>();
-      for (const u of users ?? []) {
+      for (const u of topList) {
         if (u?.referral_code) map.set(u.referral_code, u);
       }
-      if (currentUser?.referral_code)
+      // Append current user only if outside the top list
+      if (currentUser?.referral_code && !currentUserInTopList)
         map.set(currentUser.referral_code, currentUser);
       return Array.from(map.values());
     })();
 
-    // Re-rank after merging.
+    // Sort descending by points
     merged.sort((a, b) => (b.total_points ?? 0) - (a.total_points ?? 0));
 
     const leaderboard = merged.map((user, index) => {
+      const isCurrentUser = user.referral_code === currentUser?.referral_code;
+
+      // Use the DB-calculated rank only when the current user was appended
+      // (i.e. they are outside the top list). Everyone in the top list gets
+      // a clean sequential rank based on their sorted position.
       const rank =
-        user.referral_code === currentUser?.referral_code && currentUserRank
+        isCurrentUser && !currentUserInTopList && currentUserRank
           ? currentUserRank
           : index + 1;
 

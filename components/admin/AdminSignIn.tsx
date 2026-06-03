@@ -1,60 +1,38 @@
 "use client";
 
 import { Eye, EyeOff, LockKeyhole, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { signInAdmin } from "@/lib/actions/admin-auth";
 
 const inputClassName =
   "w-full rounded-lg border border-border bg-bg px-4 py-3 text-sm text-white placeholder-muted transition focus:border-accent focus:outline-none";
 
-export default function AdminSignIn({ redirectTo = "/admin" }: { redirectTo?: string }) {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button className="w-full" disabled={pending} type="submit">
+      {pending ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Signing in...
+        </>
+      ) : (
+        "Enter Dashboard"
+      )}
+    </Button>
+  );
+}
+
+export default function AdminSignIn({
+  redirectTo = "/admin",
+}: {
+  redirectTo?: string;
+}) {
+  const [state, formAction] = useFormState(signInAdmin, null);
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-
-  async function handleSubmit() {
-    setError("");
-
-    if (!email || !password) {
-      setError("Email and password are required.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) {
-        setError(signInError.message);
-        return;
-      }
-
-      if (!rememberMe) {
-        window.sessionStorage.setItem("questxs_admin_session_only", "true");
-      }
-
-      setSuccess(true);
-      router.replace(redirectTo);
-      router.refresh();
-    } catch {
-      setError("Unable to sign in.");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg px-6 py-16">
@@ -73,31 +51,26 @@ export default function AdminSignIn({ redirectTo = "/admin" }: { redirectTo?: st
           </p>
         </div>
 
-        <div className="mt-8 space-y-4">
+        <form action={formAction} className="mt-8 space-y-4">
+          <input type="hidden" name="redirectTo" value={redirectTo} />
+
           <input
             className={inputClassName}
             placeholder="Admin email"
             type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                void handleSubmit();
-              }
-            }}
+            name="email"
+            autoComplete="email"
+            required
           />
+
           <div className="relative">
             <input
               className={`${inputClassName} pr-12`}
               placeholder="Password"
               type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  void handleSubmit();
-                }
-              }}
+              name="password"
+              autoComplete="current-password"
+              required
             />
             <button
               aria-label={showPassword ? "Hide password" : "Show password"}
@@ -109,36 +82,10 @@ export default function AdminSignIn({ redirectTo = "/admin" }: { redirectTo?: st
             </button>
           </div>
 
-          <label className="flex items-center gap-3 text-sm text-muted">
-            <input
-              checked={rememberMe}
-              className="h-4 w-4 rounded border-border bg-bg accent-accent"
-              type="checkbox"
-              onChange={(event) => setRememberMe(event.target.checked)}
-            />
-            Remember this device
-          </label>
+          {state?.error && <p className="text-sm text-danger">{state.error}</p>}
 
-          {error && <p className="text-sm text-danger">{error}</p>}
-          {success && <p className="text-sm text-accent">Access granted. Opening dashboard...</p>}
-
-          <Button
-            className="w-full"
-            disabled={loading}
-            onClick={() => {
-              void handleSubmit();
-            }}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              "Enter Dashboard"
-            )}
-          </Button>
-        </div>
+          <SubmitButton />
+        </form>
       </section>
     </main>
   );

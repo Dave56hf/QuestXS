@@ -12,7 +12,7 @@ export function isAllowedAdminEmail(email?: string | null) {
     .filter(Boolean);
 
   if (!allowedEmails.length) {
-    return true;
+    return false;
   }
 
   return allowedEmails.includes(email.toLowerCase());
